@@ -1,74 +1,216 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { Search, MapPin, Layout, Plus, Heart } from "lucide-react-native";
+import { useLocations, useBoards, useToggleLocationFavorite } from "../../src/hooks/useQueries";
+import { Location, Board } from "../../src/types";
+import { useToast } from "../../src/components/Toast";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const RECENT_ITEMS_LIMIT = 3;
 
-export default function HomeScreen() {
+export default function HomePage() {
+  const router = useRouter();
+  const toast = useToast();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { data: locationsData, refetch: refetchLocations } = useLocations({
+    limit: RECENT_ITEMS_LIMIT,
+    sortBy: "updatedAt",
+    sortOrder: "desc",
+  });
+
+  const { data: boardsData, refetch: refetchBoards } = useBoards({
+    limit: RECENT_ITEMS_LIMIT,
+    sortBy: "updatedAt",
+    sortOrder: "desc",
+  });
+
+  const toggleFavorite = useToggleLocationFavorite();
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchLocations(), refetchBoards()]);
+    setRefreshing(false);
+  };
+
+  const handleToggleFavorite = async (id: string) => {
+    try {
+      await toggleFavorite.mutateAsync(id);
+      toast.show("Location updated");
+    } catch (error) {
+      toast.show("Failed to update location", "error");
+    }
+  };
+
+  const renderLocation = ({ item }: { item: Location }) => (
+    <TouchableOpacity
+      className="w-64 bg-white rounded-xl shadow-sm border border-gray-100"
+      onPress={() => router.push(`/location/${item.id}`)}
+    >
+      <Image
+        source={{ uri: item.image }}
+        className="w-full h-32 rounded-t-xl"
+      />
+      <View className="p-4">
+        <View className="flex-row items-center justify-between">
+          <Text className="font-semibold text-[#2D2B3F] flex-1">{item.name}</Text>
+          <TouchableOpacity
+            onPress={() => handleToggleFavorite(item.id)}
+            className="p-2"
+          >
+            <Heart
+              size={20}
+              color={item.isFavorite ? "#EF4444" : "#9CA3AF"}
+              fill={item.isFavorite ? "#EF4444" : "none"}
+            />
+          </TouchableOpacity>
+        </View>
+        <Text className="text-gray-500 text-sm mt-1">{item.description}</Text>
+        {item.category && (
+          <View className="mt-2">
+            <View className="bg-[#E5E1FF] px-2 py-1 rounded-full self-start">
+              <Text className="text-[#6A62B7] text-xs">{item.category}</Text>
+            </View>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderBoard = ({ item }: { item: Board }) => (
+    <TouchableOpacity
+      className="w-64 bg-white rounded-xl shadow-sm border border-gray-100"
+      onPress={() => router.push(`/board/${item.id}`)}
+    >
+      <View className="p-4">
+        <Text className="font-semibold text-[#2D2B3F]">{item.name}</Text>
+        <Text className="text-gray-500 text-sm mt-1">{item.description}</Text>
+        <View className="flex-row items-center mt-2">
+          <View className="bg-[#E5E1FF] px-2 py-1 rounded-full">
+            <Text className="text-[#6A62B7] text-xs">{item.locationCount} locations</Text>
+          </View>
+          {item.category && (
+            <View className="bg-gray-100 px-2 py-1 rounded-full ml-2">
+              <Text className="text-gray-600 text-xs">{item.category}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <SafeAreaView className="flex-1 bg-white">
+      <ScrollView 
+        className="flex-1"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+        {/* Header */}
+        <View className="px-4 py-4">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-2xl font-bold text-[#2D2B3F]">Home</Text>
+            <TouchableOpacity
+              onPress={() => router.push("/profile")}
+              className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center"
+            >
+              <Text className="text-lg font-semibold text-[#2D2B3F]">
+                {user?.name?.[0] || "U"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Bar */}
+          <TouchableOpacity
+            className="flex-row items-center bg-gray-100 rounded-full px-4 py-3 mb-6"
+            onPress={() => router.push("/search")}
+          >
+            <Search size={20} color="#6B7280" />
+            <Text className="ml-2 text-gray-500">Search locations...</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick Actions */}
+        <View className="px-4 mb-6">
+          <Text className="text-lg font-semibold text-[#2D2B3F] mb-4">Quick Actions</Text>
+          <View className="flex-row space-x-4">
+            <TouchableOpacity
+              className="flex-1 bg-[#E5E1FF] rounded-xl p-4 items-center"
+              onPress={() => router.push("/locations")}
+            >
+              <MapPin size={24} color="#6A62B7" />
+              <Text className="mt-2 text-[#6A62B7] font-medium">Locations</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 bg-[#E5E1FF] rounded-xl p-4 items-center"
+              onPress={() => router.push("/boards")}
+            >
+              <Layout size={24} color="#6A62B7" />
+              <Text className="mt-2 text-[#6A62B7] font-medium">Boards</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Recent Locations */}
+        <View className="px-4 mb-6">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-semibold text-[#2D2B3F]">Recent Locations</Text>
+            <TouchableOpacity onPress={() => router.push("/locations")}>
+              <Text className="text-[#6A62B7] font-medium">See All</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="space-x-4">
+            {locationsData?.data.map((location) => renderLocation({ item: location }))}
+            {locationsData?.data.length === 0 && (
+              <View className="w-64 items-center justify-center py-8">
+                <MapPin size={48} color="#9CA3AF" />
+                <Text className="text-gray-500 text-center mt-4">No locations yet</Text>
+                <TouchableOpacity
+                  className="mt-4 bg-[#6A62B7] px-6 py-3 rounded-full"
+                  onPress={() => router.push("/add-location")}
+                >
+                  <Text className="text-white font-medium">Add Location</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+
+        {/* Recent Boards */}
+        <View className="px-4 mb-6">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-semibold text-[#2D2B3F]">Recent Boards</Text>
+            <TouchableOpacity onPress={() => router.push("/boards")}>
+              <Text className="text-[#6A62B7] font-medium">See All</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="space-x-4">
+            {boardsData?.data.map((board) => renderBoard({ item: board }))}
+            {boardsData?.data.length === 0 && (
+              <View className="w-64 items-center justify-center py-8">
+                <Layout size={48} color="#9CA3AF" />
+                <Text className="text-gray-500 text-center mt-4">No boards yet</Text>
+                <TouchableOpacity
+                  className="mt-4 bg-[#6A62B7] px-6 py-3 rounded-full"
+                  onPress={() => router.push("/add-board")}
+                >
+                  <Text className="text-white font-medium">Create Board</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </ScrollView>
+
+      {/* Add Button */}
+      <TouchableOpacity
+        className="absolute bottom-6 right-6 w-14 h-14 bg-[#6A62B7] rounded-full items-center justify-center shadow-lg"
+        onPress={() => router.push("/add")}
+      >
+        <Plus size={24} color="white" />
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});

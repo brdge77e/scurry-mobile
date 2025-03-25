@@ -1,0 +1,39 @@
+{
+  "name": "scurry-mobile",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-navigation/bottom-tabs": "^7.3.2",
+    "@react-navigation/native": "^7.0.18",
+    "@react-navigation/native-stack": "^7.3.2",
+    "@tanstack/react-query": "^5.69.0",
+    "lucide-react-native": "^0.483.0",
+    "metro": "^0.76.7",
+    "metro-core": "^0.76.7",
+    "metro-runtime": "^0.76.7",
+    "metro-source-map": "^0.76.7",
+    "react-native": "^0.78.1",
+    "react-native-safe-area-context": "^5.3.0",
+    "react-native-screens": "^4.9.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-react": "^7.26.3",
+    "@babel/preset-typescript": "^7.26.0",
+    "@types/react": "^19.0.12",
+    "@types/react-native": "^0.72.8",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "metro-react-native-babel-preset": "^0.77.0",
+    "react-native-svg-transformer": "^1.5.0",
+    "typescript": "^5.8.2"
+  }
+}
