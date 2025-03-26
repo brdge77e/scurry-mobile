@@ -11,7 +11,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useToast } from '../hooks/useToast';
 import { Checkbox } from '../components/Checkbox';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 
@@ -38,7 +38,7 @@ export function LinkResultsScreen() {
     const fetchLocations = async () => {
       try {
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise<void>((resolve) => setTimeout(resolve, 2000));
         
         // Mock data
         const mockLocations: Location[] = [
@@ -99,25 +99,41 @@ export function LinkResultsScreen() {
       sourceLink,
     });
   };
+  
+  const handleViewLocationDetails = (locationId: string) => {
+    // Navigate to the LocationDetails screen
+    navigation.navigate('LocationDetails', {
+      locationId,
+    });
+  };
 
   const renderLocation = ({ item }: { item: Location }) => (
-    <TouchableOpacity
-      style={styles.locationItem}
-      onPress={() => handleLocationSelect(item.id)}
-    >
-      <Checkbox
-        checked={selectedLocations.has(item.id)}
-        onCheckedChange={() => handleLocationSelect(item.id)}
-      />
-      <View style={styles.locationInfo}>
-        <Text style={styles.locationName}>{item.name}</Text>
-        <Text style={styles.locationAddress}>{item.address}</Text>
-        <View style={styles.locationDetails}>
-          <Text style={styles.locationDistance}>{item.distance}</Text>
-          <Text style={styles.locationRating}>★ {item.rating}</Text>
+    <View style={styles.locationItem}>
+      <TouchableOpacity
+        style={styles.checkboxContainer}
+        onPress={() => handleLocationSelect(item.id)}
+      >
+        <Checkbox
+          checked={selectedLocations.has(item.id)}
+          onPress={() => handleLocationSelect(item.id)}
+        />
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.locationContent}
+        onPress={() => handleViewLocationDetails(item.id)}
+      >
+        <View style={styles.locationInfo}>
+          <Text style={styles.locationName}>{item.name}</Text>
+          <Text style={styles.locationAddress}>{item.address}</Text>
+          <View style={styles.locationDetails}>
+            <Text style={styles.locationDistance}>{item.distance}</Text>
+            <Text style={styles.locationRating}>★ {item.rating}</Text>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
+        <ChevronRight size={20} color="#6B7280" />
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -203,9 +219,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  checkboxContainer: {
+    marginRight: 12,
+  },
+  locationContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   locationInfo: {
     flex: 1,
-    marginLeft: 12,
   },
   locationName: {
     fontSize: 16,
@@ -256,5 +280,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-}); 
 }); 

@@ -3,6 +3,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, MapPin, Heart, Share2, User } from 'lucide-react-native';
+import { AuthProvider } from './src/contexts/AuthContext';
+import { ToastProvider } from './src/hooks/useToast';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { HomeScreen } from './src/screens/HomeScreen';
 import { AllLocationsScreen } from './src/screens/AllLocationsScreen';
@@ -61,20 +64,32 @@ function MainTabs() {
   );
 }
 
+function Navigation() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen name="LinkResults" component={LinkResultsScreen} />
+      <Stack.Screen name="SelectedLocations" component={SelectedLocationsScreen} />
+      <Stack.Screen name="LocationDetails" component={LocationDetailsScreen} />
+      <Stack.Screen name="BoardDetails" component={BoardDetailsScreen} />
+    </Stack.Navigator>
+  );
+}
+
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="LinkResults" component={LinkResultsScreen} />
-        <Stack.Screen name="SelectedLocations" component={SelectedLocationsScreen} />
-        <Stack.Screen name="LocationDetails" component={LocationDetailsScreen} />
-        <Stack.Screen name="BoardDetails" component={BoardDetailsScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <ToastProvider>
+          <AuthProvider>
+            <Navigation />
+          </AuthProvider>
+        </ToastProvider>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 } 

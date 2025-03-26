@@ -1,99 +1,116 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  SafeAreaView,
   TouchableOpacity,
-  Image,
+  FlatList,
+  TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Board } from '../types';
+import { Plus, Search } from 'lucide-react-native';
 import { RootStackParamList } from '../types/navigation';
-import { PlaceholderImage } from '../components/PlaceholderImage';
+import { BoardEditModal } from '../components/BoardEditModal';
 
-type AllBoardsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type AllBoardsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AllBoards'>;
 
-const MOCK_BOARDS: Board[] = [
-  {
-    id: '1',
-    name: 'Favorite Restaurants',
-    description: 'My go-to spots for great food',
-    image: 'https://example.com/restaurants.jpg',
-    locationCount: 12,
-    category: 'Food',
-    tags: ['restaurants', 'food', 'favorites'],
-    isPublic: false,
-    createdBy: 'user1',
-    collaborators: [],
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-01',
-  },
-  {
-    id: '2',
-    name: 'Travel Bucket List',
-    description: 'Places I want to visit someday',
-    image: 'https://example.com/travel.jpg',
-    locationCount: 25,
-    category: 'Travel',
-    tags: ['travel', 'bucket-list', 'future'],
-    isPublic: true,
-    createdBy: 'user1',
-    collaborators: ['user2'],
-    createdAt: '2024-01-15',
-    updatedAt: '2024-01-15',
-  },
-  // Add more mock boards as needed
-];
+interface Board {
+  id: string;
+  name: string;
+  coverImage?: string;
+  locationCount: number;
+}
 
 export function AllBoardsScreen() {
   const navigation = useNavigation<AllBoardsScreenNavigationProp>();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
 
-  const renderBoard = ({ item }: { item: Board }) => (
+  // Mock data - replace with actual data from your state management system
+  const [boards, setBoards] = useState<Board[]>([
+    {
+      id: '1',
+      name: 'Japan Grad Trip! 👘',
+      locationCount: 12,
+    },
+    {
+      id: '2',
+      name: 'Europe Summer 2024 🌞',
+      locationCount: 8,
+    },
+    // Add more boards as needed
+  ]);
+
+  const filteredBoards = boards.filter(board =>
+    board.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleCreateBoard = (data: { name: string; coverImage?: string }) => {
+    const newBoard: Board = {
+      id: Date.now().toString(),
+      name: data.name,
+      coverImage: data.coverImage,
+      locationCount: 0,
+    };
+    setBoards(prev => [newBoard, ...prev]);
+    setIsCreateModalVisible(false);
+  };
+
+  const renderBoardItem = ({ item }: { item: Board }) => (
     <TouchableOpacity
-      style={styles.boardCard}
-      onPress={() => navigation.navigate('BoardDetails', { board: item })}
+      style={styles.boardItem}
+      onPress={() => navigation.navigate('Board', { boardId: item.id })}
     >
-      <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: item.image }}
-          style={styles.boardImage}
-          onError={() => {
-            // Handle image load error
-          }}
-        />
-        <View style={styles.imageOverlay}>
-          <PlaceholderImage size={48} />
-        </View>
-      </View>
-      <View style={styles.boardInfo}>
+      <View>
         <Text style={styles.boardName}>{item.name}</Text>
-        <Text style={styles.boardDescription}>{item.description}</Text>
-        <View style={styles.boardStats}>
-          <Text style={styles.locationCount}>
-            {item.locationCount} locations
-          </Text>
-          <Text style={styles.createdAt}>
-            Created {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
-        </View>
+        <Text style={styles.locationCount}>
+          {item.locationCount} {item.locationCount === 1 ? 'location' : 'locations'}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Boards</Text>
+        <Text style={styles.title}>Boards</Text>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => setIsCreateModalVisible(true)}
+        >
+          <Plus size={24} color="#6A62B7" />
+        </TouchableOpacity>
       </View>
+
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Search size={20} color="#6B7280" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search boards"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#6B7280"
+          />
+        </View>
+      </View>
+
       <FlatList
-        data={MOCK_BOARDS}
-        renderItem={renderBoard}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        data={filteredBoards}
+        renderItem={renderBoardItem}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.listContent}
       />
-    </View>
+
+      <BoardEditModal
+        visible={isCreateModalVisible}
+        onClose={() => setIsCreateModalVisible(false)}
+        onSave={handleCreateBoard}
+        mode="create"
+      />
+    </SafeAreaView>
   );
 }
 
@@ -103,79 +120,58 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2D2B3F',
-  },
-  list: {
-    padding: 16,
-  },
-  boardCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  imageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: 160,
-  },
-  boardImage: {
-    width: '100%',
-    height: '100%',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  imageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(243, 244, 246, 0.8)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  boardInfo: {
-    padding: 16,
-  },
-  boardName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#2D2B3F',
-    marginBottom: 8,
-  },
-  boardDescription: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-  boardStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 16,
+  },
+  title: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#2D2B3F',
+  },
+  createButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#2D2B3F',
+  },
+  listContent: {
+    padding: 16,
+  },
+  boardItem: {
+    padding: 16,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  boardName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2D2B3F',
+    marginBottom: 4,
   },
   locationCount: {
-    fontSize: 14,
-    color: '#6A62B7',
-    fontWeight: '500',
-  },
-  createdAt: {
     fontSize: 14,
     color: '#6B7280',
   },

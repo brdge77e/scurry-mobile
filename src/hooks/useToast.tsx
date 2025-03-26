@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 
 type ToastType = 'success' | 'error' | 'info';
@@ -38,10 +38,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     message: string;
     type: ToastType;
   } | null>(null);
-  const [fadeAnim] = useState(new Animated.Value(0));
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const timeoutRef = useRef<NodeJS.Timeout>();
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Reset animation value
+    fadeAnim.setValue(0);
     setToast({ message, type });
+
+    // Start animation sequence
     Animated.sequence([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -59,6 +69,25 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     });
   }, [fadeAnim]);
 
+  const hideToast = useCallback(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setToast(null);
+    });
+  }, [fadeAnim]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   const Toast = () => {
     if (!toast) return null;
 
@@ -68,16 +97,21 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           styles.container,
           {
             opacity: fadeAnim,
+            transform: [
+              {
+                translateY: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 0],
+                }),
+              },
+            ],
           },
         ]}
       >
         <Toast
           message={toast.message}
           type={toast.type}
-          onHide={() => {
-            fadeAnim.setValue(0);
-            setToast(null);
-          }}
+          onHide={hideToast}
         />
       </Animated.View>
     );

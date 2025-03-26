@@ -1,13 +1,26 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { Board, Location } from './index';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export type RootStackParamList = {
-  Main: NavigatorScreenParams<MainTabParamList>;
+  Main: undefined;
   Login: undefined;
-  SelectedLocations: { sourceLink: string };
-  LinkResults: { sourceLink: string };
-  LocationDetails: { location: Location };
-  BoardDetails: { board: Board };
+  LinkResults: {
+    sourceLink: string;
+  };
+  SelectedLocations: {
+    sourceLink: string;
+  };
+  LocationDetails: {
+    locationId: string;
+  };
+  BoardDetails: {
+    boardId: string;
+  };
+  AllBoards: undefined;
+  Board: {
+    boardId: string;
+  };
   NotFound: undefined;
 };
 
@@ -16,4 +29,7 @@ export type MainTabParamList = {
   AllLocations: undefined;
   AllBoards: undefined;
   Profile: undefined;
-}; 
+};
+
+export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+export type MainTabNavigationProp = NativeStackNavigationProp<MainTabParamList>; 

@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Define protected routes that require authentication
 const protectedRoutes = [
-  "MainTabs",
+  "Main",
   "SelectedLocations",
   "LinkResults",
   "AllLocations",
@@ -34,41 +34,51 @@ const protectedRoutes = [
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const navigation = useNavigation();
   const { showToast } = useToast();
 
   // Check if user is already logged in
   useEffect(() => {
+    let isMounted = true;
+
     const checkAuth = async () => {
       try {
         const storedUser = await AsyncStorage.getItem("auth_user");
         
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-        
-        setIsLoading(false);
-        
-        // If no user is logged in and we're on a protected route, redirect to login
-        if (!storedUser && isProtectedRoute(navigation.getState().routes[0].name)) {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "Login" }],
-          });
+        if (isMounted) {
+          if (storedUser) {
+            setUser(JSON.parse(storedUser));
+          }
+          
+          setIsLoading(false);
+          setIsInitialized(true);
+          
+          // Only redirect if we're on a protected route and not authenticated
+          const currentRoute = navigation.getState()?.routes[0]?.name;
+          if (!storedUser && currentRoute && protectedRoutes.includes(currentRoute)) {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
+          }
         }
       } catch (error) {
         console.error("Error checking auth:", error);
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          setIsInitialized(true);
+          showToast("Error checking authentication status", "error");
+        }
       }
     };
 
     checkAuth();
-  }, [navigation]);
 
-  // Helper function to check if the current route is protected
-  const isProtectedRoute = (routeName: string | undefined) => {
-    return protectedRoutes.some(route => routeName === route);
-  };
+    return () => {
+      isMounted = false;
+    };
+  }, [navigation, showToast]);
 
   const login = async (email: string, provider = "email") => {
     setIsLoading(true);
@@ -87,10 +97,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       showToast(`Successfully logged in with ${provider}`);
       
-      // Reset navigation to MainTabs
+      // Reset navigation to Main
       navigation.reset({
         index: 0,
-        routes: [{ name: "MainTabs" }],
+        routes: [{ name: "Main" }],
       });
     } catch (error) {
       console.error("Error logging in:", error);
@@ -117,6 +127,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       showToast("Failed to logout. Please try again.", "error");
     }
   };
+
+  // Don't render children until initialization is complete
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider

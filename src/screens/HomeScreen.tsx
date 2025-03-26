@@ -44,8 +44,9 @@ export const HomeScreen = () => {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>Scurry</Text>
-            <Text style={styles.subtitle}>Find and collect your favorite spots from social media</Text>
+            <Text style={styles.title}>Inspired?</Text>
+            <Text style={styles.subtitle}>Let's add it to your</Text>
+            <Text style={styles.collection}>collection.</Text>
           </View>
 
           <View style={styles.form}>
@@ -101,15 +102,23 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   title: {
-    fontSize: 32,
+    fontSize: 48,
     fontWeight: 'bold',
     color: '#2D2B3F',
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    color: '#433E7A',
-    opacity: 0.6,
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#2D2B3F',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  collection: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#6A62B7',
     textAlign: 'center',
   },
   form: {
