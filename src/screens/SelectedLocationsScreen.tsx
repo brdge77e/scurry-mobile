@@ -191,6 +191,8 @@ export function SelectedLocationsScreen() {
 
     setLocations(updatedLocations);
     setTagInput('');
+    // Show a toast to confirm tag was added
+    showToast(`Tag "${tagInput.trim()}" added`);
   };
 
   const handleSelectPredefinedTag = (tag: string) => {
@@ -293,7 +295,7 @@ export function SelectedLocationsScreen() {
   };
 
   const handleNoThanks = () => {
-    // Here you would implement the logic to save locations to the general list only
+    // Save locations to the general list only without adding to any board
     showToast('Locations saved successfully!');
     setIsBoardModalVisible(false);
     navigation.navigate('AllLocations');
@@ -314,6 +316,13 @@ export function SelectedLocationsScreen() {
   const filteredTags = PREDEFINED_TAGS.filter(
     tag => !locations.find(loc => loc.id === currentLocationId)?.editableTags.includes(tag)
   );
+
+  // Add this function to get current location tags
+  const getCurrentLocationTags = () => {
+    if (!currentLocationId) return [];
+    const currentLocation = locations.find(loc => loc.id === currentLocationId);
+    return currentLocation ? currentLocation.editableTags : [];
+  };
 
   const renderLocationItem = ({ item }: { item: LocationWithEditableContent }) => (
     <View style={styles.locationCard}>
@@ -435,6 +444,32 @@ export function SelectedLocationsScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Display currently added tags */}
+            {getCurrentLocationTags().length > 0 && (
+              <View style={styles.currentTagsContainer}>
+                <Text style={styles.currentTagsTitle}>Current Tags:</Text>
+                <View style={styles.currentTagsList}>
+                  {getCurrentLocationTags().map((tag, index) => (
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.tagItem,
+                        { backgroundColor: getTagColor(tag) }
+                      ]}
+                    >
+                      <Text style={styles.tagText}>{tag}</Text>
+                      <TouchableOpacity 
+                        style={styles.removeTagButton}
+                        onPress={() => handleRemoveTag(currentLocationId as string, tag)}
+                      >
+                        <X size={12} color="#6A62B7" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <View style={styles.tagInputContainer}>
               <TextInput
                 ref={inputRef}
@@ -529,9 +564,9 @@ export function SelectedLocationsScreen() {
 
       {/* Board Selection Modal */}
       <Modal
+        transparent
         visible={isBoardModalVisible}
-        animationType="slide"
-        transparent={true}
+        animationType="fade"
         onRequestClose={() => setIsBoardModalVisible(false)}
       >
         <View style={styles.boardModalContainer}>
@@ -543,101 +578,118 @@ export function SelectedLocationsScreen() {
                 style={styles.closeButton}
                 onPress={() => setIsBoardModalVisible(false)}
               >
-                <X size={24} color="#2D2B3F" />
+                <X size={20} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.searchContainer}>
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search collections"
-                placeholderTextColor="#6B7280"
+                placeholder="Search boards"
                 value={boardSearchQuery}
                 onChangeText={setBoardSearchQuery}
               />
             </View>
 
-            <View style={styles.boardsSection}>
-              <Text style={styles.boardsSectionTitle}>Recently Accessed</Text>
-              <ScrollView style={styles.boardsList}>
-                {recentBoards.map(board => (
-                  <TouchableOpacity
-                    key={board.id}
-                    style={[
-                      styles.boardItem,
-                      selectedBoard === board.id && styles.boardItemSelected
-                    ]}
-                    onPress={() => setSelectedBoard(board.id)}
-                  >
-                    <View style={styles.boardInfo}>
-                      <Text style={styles.boardName}>{board.name}</Text>
-                      <Text style={styles.boardCount}>{board.locationCount} Locations Saved</Text>
-                    </View>
-                    {selectedBoard === board.id && (
-                      <View style={styles.checkmark}>
-                        <Check size={16} color="#FFFFFF" />
-                      </View>
+            {/* Recent boards section */}
+            <View style={styles.boardSectionContainer}>
+              <Text style={styles.boardSectionTitle}>Recently accessed</Text>
+              <View style={styles.boardListContainer}>
+                {recentBoards.length > 0 ? (
+                  <FlatList
+                    data={recentBoards}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[
+                          styles.boardItem,
+                          selectedBoard === item.id && styles.selectedBoardItem,
+                        ]}
+                        onPress={() => setSelectedBoard(item.id)}
+                      >
+                        <View style={styles.boardItemContent}>
+                          <Text style={styles.boardName}>{item.name}</Text>
+                          <Text style={styles.boardCount}>{item.locationCount} locations</Text>
+                        </View>
+                        {selectedBoard === item.id && (
+                          <Check size={20} color="#6A62B7" />
+                        )}
+                      </TouchableOpacity>
                     )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              
-              <Text style={[styles.boardsSectionTitle, { marginTop: 16 }]}>All Boards</Text>
-              <ScrollView style={styles.boardsList}>
-                {filteredBoards.map(board => (
-                  <TouchableOpacity
-                    key={board.id}
-                    style={[
-                      styles.boardItem,
-                      selectedBoard === board.id && styles.boardItemSelected
-                    ]}
-                    onPress={() => setSelectedBoard(board.id)}
-                  >
-                    <View style={styles.boardInfo}>
-                      <Text style={styles.boardName}>{board.name}</Text>
-                      <Text style={styles.boardCount}>{board.locationCount} Locations Saved</Text>
-                    </View>
-                    {selectedBoard === board.id && (
-                      <View style={styles.checkmark}>
-                        <Check size={16} color="#FFFFFF" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                    style={styles.boardList}
+                  />
+                ) : (
+                  <Text style={styles.emptyText}>No recent boards</Text>
+                )}
+              </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.newBoardButton}
-              onPress={() => {
-                setIsNewBoardModalVisible(true);
-              }}
-            >
-              <Plus size={20} color="#FFFFFF" />
-              <Text style={styles.newBoardButtonText}>New board</Text>
-            </TouchableOpacity>
+            {/* All boards section */}
+            <View style={styles.boardSectionContainer}>
+              <Text style={styles.boardSectionTitle}>All boards</Text>
+              <View style={styles.boardListContainer}>
+                {filteredBoards.length > 0 ? (
+                  <FlatList
+                    data={filteredBoards}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[
+                          styles.boardItem,
+                          selectedBoard === item.id && styles.selectedBoardItem,
+                        ]}
+                        onPress={() => setSelectedBoard(item.id)}
+                      >
+                        <View style={styles.boardItemContent}>
+                          <Text style={styles.boardName}>{item.name}</Text>
+                          <Text style={styles.boardCount}>{item.locationCount} locations</Text>
+                        </View>
+                        {selectedBoard === item.id && (
+                          <Check size={20} color="#6A62B7" />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    style={styles.boardList}
+                  />
+                ) : (
+                  <Text style={styles.emptyText}>No boards matching your search</Text>
+                )}
+              </View>
+            </View>
 
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                !selectedBoard && styles.saveButtonDisabled
-              ]}
-              disabled={!selectedBoard}
-              onPress={() => {
-                if (selectedBoard) {
-                  handleAddToBoard(selectedBoard);
-                }
-              }}
-            >
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.createBoardButton}
+                onPress={() => {
+                  setIsBoardModalVisible(false);
+                  setIsNewBoardModalVisible(true);
+                }}
+              >
+                <Plus size={20} color="#6A62B7" />
+                <Text style={styles.createBoardText}>Create a new board</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.noThanksButton}
-              onPress={handleNoThanks}
-            >
-              <Text style={styles.noThanksButtonText}>No thanks</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.noThanksButton}
+                onPress={handleNoThanks}
+              >
+                <Text style={styles.noThanksText}>No thanks</Text>
+              </TouchableOpacity>
+              
+              {selectedBoard && (
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={() => {
+                    handleAddToBoard(selectedBoard);
+                    setIsBoardModalVisible(false);
+                    setSelectedBoard(null);
+                    showToast('Location added to board!');
+                  }}
+                >
+                  <Text style={styles.confirmButtonText}>Confirm</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
       </Modal>
@@ -744,7 +796,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 14,
-    color: '#6A62B7',
+    color: '#1F2937',
     marginRight: 4,
   },
   removeTagButton: {
@@ -871,7 +923,7 @@ const styles = StyleSheet.create({
   },
   tagSuggestionText: {
     fontSize: 14,
-    color: '#2D2B3F',
+    color: '#1F2937',
     fontWeight: '500',
   },
   addTagButton: {
@@ -918,123 +970,157 @@ const styles = StyleSheet.create({
   },
   boardModalContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 20,
   },
   boardModalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    width: '100%',
+    maxHeight: '85%',
     padding: 24,
-    minHeight: '60%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   boardModalHeader: {
+    alignItems: 'center',
     marginBottom: 24,
+    position: 'relative',
   },
   boardModalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2D2B3F',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
     marginBottom: 4,
   },
   boardModalSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#6B7280',
+    marginBottom: 8,
   },
   closeButton: {
     position: 'absolute',
-    top: 0,
     right: 0,
+    top: 0,
+    padding: 4,
   },
   searchContainer: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   searchInput: {
-    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    backgroundColor: '#F9FAFB',
   },
-  boardsSection: {
-    flex: 1,
-  },
-  boardsSectionTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#2D2B3F',
+  boardSectionContainer: {
     marginBottom: 16,
   },
-  boardsList: {
-    maxHeight: 300,
+  boardSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  boardListContainer: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    height: 160, // Increased height for better visibility
+  },
+  boardList: {
+    flex: 1,
   },
   boardItem: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    alignItems: 'center',
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  boardInfo: {
+  selectedBoardItem: {
+    backgroundColor: '#EDE9FE',
+  },
+  boardItemContent: {
     flex: 1,
   },
   boardName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#2D2B3F',
+    color: '#1F2937',
     marginBottom: 4,
   },
   boardCount: {
     fontSize: 14,
     color: '#6B7280',
   },
-  newBoardButton: {
-    backgroundColor: '#6A62B7',
+  emptyText: {
+    padding: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  modalActions: {
+    marginTop: 16,
+    flexDirection: 'column',  // Changed from row to column
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  createBoardButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,  // Add margin between buttons
+    width: '100%',     // Make button take full width
     justifyContent: 'center',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 24,
   },
-  newBoardButtonText: {
-    color: '#FFFFFF',
+  createBoardText: {
+    color: '#6A62B7',
     fontSize: 16,
     fontWeight: '500',
     marginLeft: 8,
   },
   noThanksButton: {
-    padding: 16,
+    marginBottom: 12,  // Add margin between buttons
+    width: '100%',     // Make button take full width
     alignItems: 'center',
   },
-  noThanksButtonText: {
+  noThanksText: {
     color: '#6B7280',
     fontSize: 16,
-  },
-  boardItemSelected: {
-    backgroundColor: '#F3F4F6',
-  },
-  checkmark: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#6A62B7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#6A62B7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#A5A5A5',
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
     fontWeight: '500',
+  },
+  confirmButton: {
+    backgroundColor: '#6A62B7',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    width: '100%',    // Make button take full width
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  currentTagsContainer: {
+    marginBottom: 12,
+  },
+  currentTagsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginBottom: 8,
+  },
+  currentTagsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
 }); 

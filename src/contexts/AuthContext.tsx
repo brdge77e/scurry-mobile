@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
-import { useToast } from '../hooks/useToast';
+import { useNavigation, NavigationState } from "@react-navigation/native";
 
 interface User {
   email: string;
@@ -36,7 +35,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const navigation = useNavigation();
-  const { showToast } = useToast();
 
   // Check if user is already logged in
   useEffect(() => {
@@ -54,13 +52,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoading(false);
           setIsInitialized(true);
           
-          // Only redirect if we're on a protected route and not authenticated
-          const currentRoute = navigation.getState()?.routes[0]?.name;
-          if (!storedUser && currentRoute && protectedRoutes.includes(currentRoute)) {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "Login" }],
-            });
+          // Only redirect if navigation is available, we're on a protected route and not authenticated
+          if (!storedUser && navigation && navigation.getState) {
+            try {
+              const state = navigation.getState();
+              const currentRoute = state?.routes[0]?.name;
+              
+              if (currentRoute && protectedRoutes.includes(currentRoute)) {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Login" }],
+                });
+              }
+            } catch (navError) {
+              console.error("Navigation error:", navError);
+              // Navigation might not be fully initialized yet, that's ok
+            }
           }
         }
       } catch (error) {
@@ -68,7 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isMounted) {
           setIsLoading(false);
           setIsInitialized(true);
-          showToast("Error checking authentication status", "error");
         }
       }
     };
@@ -78,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       isMounted = false;
     };
-  }, [navigation, showToast]);
+  }, [navigation]);
 
   const login = async (email: string, provider = "email") => {
     setIsLoading(true);
@@ -95,16 +101,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await AsyncStorage.setItem("auth_user", JSON.stringify(mockUser));
       setUser(mockUser);
       
-      showToast(`Successfully logged in with ${provider}`);
-      
-      // Reset navigation to Main
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Main" }],
-      });
+      // Reset navigation to Main if navigation is available
+      if (navigation && navigation.reset) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Main" }],
+        });
+      }
     } catch (error) {
       console.error("Error logging in:", error);
-      showToast("Failed to login. Please try again.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -115,16 +120,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await AsyncStorage.removeItem("auth_user");
       setUser(null);
       
-      // Reset navigation to Login
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Login" }],
-      });
-      
-      showToast("You have been logged out");
+      // Reset navigation to Login if navigation is available
+      if (navigation && navigation.reset) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
+      }
     } catch (error) {
       console.error("Error logging out:", error);
-      showToast("Failed to logout. Please try again.", "error");
     }
   };
 

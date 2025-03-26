@@ -9,7 +9,7 @@ interface ToastProps {
   onHide: () => void;
 }
 
-function Toast({ message, type, onHide }: ToastProps) {
+function ToastMessage({ message, type, onHide }: ToastProps) {
   const backgroundColor = {
     success: '#10B981',
     error: '#EF4444',
@@ -88,7 +88,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const Toast = () => {
+  const renderToast = () => {
     if (!toast) return null;
 
     return (
@@ -108,7 +108,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           },
         ]}
       >
-        <Toast
+        <ToastMessage
           message={toast.message}
           type={toast.type}
           onHide={hideToast}
@@ -118,7 +118,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ToastContext.Provider value={{ showToast, toast: Toast() }}>
+    <ToastContext.Provider value={{ showToast, toast: renderToast() }}>
       {children}
     </ToastContext.Provider>
   );
