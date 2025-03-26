@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
+  Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Plus, Search } from 'lucide-react-native';
 import { RootStackParamList } from '../types/navigation';
 import { BoardEditModal } from '../components/BoardEditModal';
+import { PlaceholderImage } from '../components/PlaceholderImage';
 
 type AllBoardsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AllBoards'>;
 
@@ -25,6 +27,7 @@ interface Board {
 
 export function AllBoardsScreen() {
   const navigation = useNavigation<AllBoardsScreenNavigationProp>();
+  const isFocused = useIsFocused();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
 
@@ -33,21 +36,84 @@ export function AllBoardsScreen() {
     {
       id: '1',
       name: 'Japan Grad Trip! 👘',
+      coverImage: 'https://example.com/japan.jpg',
       locationCount: 12,
     },
     {
       id: '2',
       name: 'Europe Summer 2024 🌞',
+      coverImage: 'https://example.com/europe.jpg',
       locationCount: 8,
+    },
+    {
+      id: '3',
+      name: 'Hangouts~~',
+      coverImage: 'https://example.com/hangouts.jpg',
+      locationCount: 7,
     },
     // Add more boards as needed
   ]);
+
+  // Load boards when screen comes into focus to reflect changes from other screens
+  useEffect(() => {
+    if (isFocused) {
+      // This is where you would fetch updated board data when returning to this screen
+      
+      // API Integration point:
+      // When implementing backend, replace this with a fresh API call to get latest board data
+      // const fetchBoards = async () => {
+      //   try {
+      //     const response = await api.getBoards();
+      //     setBoards(response.data);
+      //   } catch (error) {
+      //     console.error('Error fetching boards:', error);
+      //   }
+      // };
+      // 
+      // fetchBoards();
+
+      // For now, we're just using mock data, but this effect will run when returning from BoardScreen
+      console.log('AllBoardsScreen focused - should refresh data');
+    }
+  }, [isFocused]);
+
+  // API Integration Comment:
+  // When implementing the backend integration, replace the mock data and functions with:
+  // 1. useEffect to fetch the boards data from your API endpoint
+  // useEffect(() => {
+  //   const fetchBoards = async () => {
+  //     try {
+  //       const response = await api.getBoards();
+  //       setBoards(response.data);
+  //     } catch (error) {
+  //       console.error('Error fetching boards:', error);
+  //     }
+  //   };
+  // 
+  //   fetchBoards();
+  // }, []);
+  //
+  // 2. Update handleCreateBoard to call your API
+  // const handleCreateBoard = async (data) => {
+  //   try {
+  //     const response = await api.createBoard(data);
+  //     setBoards(prev => [response.data, ...prev]);
+  //     setIsCreateModalVisible(false);
+  //   } catch (error) {
+  //     console.error('Error creating board:', error);
+  //   }
+  // };
+  //
+  // 3. Implement a function to keep board data in sync with your backend
+  // When navigating back from BoardScreen, you should fetch the updated data
+  // You can use the useIsFocused hook to trigger a refresh when this screen is focused
 
   const filteredBoards = boards.filter(board =>
     board.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleCreateBoard = (data: { name: string; coverImage?: string }) => {
+    // API Integration point: Replace with API call to create a board
     const newBoard: Board = {
       id: Date.now().toString(),
       name: data.name,
@@ -63,7 +129,23 @@ export function AllBoardsScreen() {
       style={styles.boardItem}
       onPress={() => navigation.navigate('Board', { boardId: item.id })}
     >
-      <View>
+      <View style={styles.boardImageContainer}>
+        {item.coverImage ? (
+          <Image
+            source={{ uri: item.coverImage }}
+            style={styles.boardImage}
+            onError={() => {
+              // Handle image loading errors
+              console.log(`Failed to load image for board: ${item.name}`);
+            }}
+          />
+        ) : (
+          <View style={styles.boardPlaceholder}>
+            <PlaceholderImage size={24} />
+          </View>
+        )}
+      </View>
+      <View style={styles.boardContent}>
         <Text style={styles.boardName}>{item.name}</Text>
         <Text style={styles.locationCount}>
           {item.locationCount} {item.locationCount === 1 ? 'location' : 'locations'}
@@ -160,10 +242,35 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   boardItem: {
-    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F3F4F6',
     borderRadius: 12,
     marginBottom: 12,
+    overflow: 'hidden',
+  },
+  boardImageContainer: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  boardImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  boardPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E5E7EB',
+  },
+  boardContent: {
+    flex: 1,
+    padding: 16,
   },
   boardName: {
     fontSize: 18,

@@ -45,6 +45,66 @@ export function LocationDetailsScreen() {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const locationId = route.params?.locationId;
 
+  // API Integration Comments:
+  // This screen shows detailed information about a location
+  // The implementation should include these API calls:
+  //
+  // 1. Fetching the location details from your backend:
+  // useEffect(() => {
+  //   const fetchLocationDetails = async () => {
+  //     try {
+  //       setLoading(true);
+  //       // Fetch location details from your API
+  //       const response = await api.getLocationById(locationId);
+  //       setLocation(response.data);
+  //
+  //       // Optionally fetch additional details from third-party APIs (Google Places, etc.)
+  //       if (response.data.placeId) {
+  //         const placeResponse = await api.getGooglePlaceDetails(response.data.placeId);
+  //         setPlaceDetails(placeResponse.data);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching location details:', error);
+  //       // Display error state
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //
+  //   fetchLocationDetails();
+  // }, [locationId]);
+  //
+  // 2. Toggling favorite status:
+  // const toggleFavorite = async () => {
+  //   try {
+  //     if (!location) return;
+  //     
+  //     const updatedFavoriteStatus = !location.isFavorite;
+  //     // Update in your API
+  //     await api.updateLocationFavoriteStatus(location.id, updatedFavoriteStatus);
+  //     
+  //     // Update local state
+  //     setLocation(prev => prev ? {...prev, isFavorite: updatedFavoriteStatus} : null);
+  //   } catch (error) {
+  //     console.error('Error updating favorite status:', error);
+  //     // Display error toast
+  //   }
+  // };
+  //
+  // 3. Adding location to board:
+  // const addToBoard = async (boardId) => {
+  //   try {
+  //     if (!location) return;
+  //     
+  //     await api.addLocationToBoard(boardId, location.id);
+  //     // Display success toast
+  //     showToast('Location added to board!');
+  //   } catch (error) {
+  //     console.error('Error adding location to board:', error);
+  //     // Display error toast
+  //   }
+  // };
+
   // Mock location data
   const [location, setLocation] = useState<Location | null>(null);
 

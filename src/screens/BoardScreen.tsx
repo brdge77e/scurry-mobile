@@ -12,6 +12,7 @@ import {
   Image,
   Share,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ArrowLeft, Filter, Share as ShareIcon, Plus, X, Edit2, Search, Check } from 'lucide-react-native';
@@ -20,6 +21,7 @@ import { RootStackParamList } from '../types/navigation';
 import { Location } from '../types/index';
 import { LocationCard } from '../components/LocationCard';
 import { BoardEditModal } from '../components/BoardEditModal';
+import { PlaceholderImage } from '../components/PlaceholderImage';
 
 type BoardScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Board'>;
 
@@ -28,6 +30,7 @@ interface Board {
   name: string;
   emoji?: string;
   locations: Location[];
+  coverImage?: string;
 }
 
 interface RecentBoard {
@@ -59,11 +62,41 @@ interface LocationWithEditableContent extends Location {
 export function BoardScreen() {
   const navigation = useNavigation<BoardScreenNavigationProp>();
   const route = useRoute();
+  const { boardId } = route.params as { boardId: string };
   
-  // Mock board data
+  // API Integration Comment:
+  // When implementing the backend integration, replace the mock data and functions with:
+  // 1. Fetch the board data using the boardId from route params
+  // useEffect(() => {
+  //   const fetchBoardData = async () => {
+  //     try {
+  //       const response = await api.getBoard(boardId);
+  //       setBoard(response.data);
+  //     } catch (error) {
+  //       console.error('Error fetching board:', error);
+  //     }
+  //   };
+  //
+  //   fetchBoardData();
+  // }, [boardId]);
+  //
+  // 2. Update board data using API calls
+  // const handleEditBoard = async (data) => {
+  //   try {
+  //     const response = await api.updateBoard(boardId, data);
+  //     setBoard(prev => ({ ...prev, ...response.data }));
+  //     setIsEditModalVisible(false);
+  //   } catch (error) {
+  //     console.error('Error updating board:', error);
+  //   }
+  // };
+
+  // Mock board data - replace with API call
   const [board, setBoard] = useState<Board>({
-    id: '1',
+    id: boardId,
     name: 'Japan Grad Trip! 👘',
+    coverImage: 'https://example.com/japan.jpg',
+    emoji: '👘',
     locations: [
       {
         id: '1',
@@ -166,8 +199,13 @@ export function BoardScreen() {
   // Filter locations based on search query and active filters
   const filteredLocations = board.locations.filter(location => {
     const matchesSearch = location.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // For location, consider it a match if any of the active filter locations are present
     const matchesLocation = !activeFilters.location || 
-      location.location.toLowerCase().includes(activeFilters.location.toLowerCase());
+      (activeFilters.location.split(', ').some(filterLoc => 
+        location.location.toLowerCase().includes(filterLoc.toLowerCase())
+      ));
+    
     const matchesTags = activeFilters.tags.length === 0 || 
       activeFilters.tags.every(tag => location.tags.includes(tag));
     return matchesSearch && matchesLocation && matchesTags;
@@ -212,11 +250,11 @@ export function BoardScreen() {
     setIsAddModalVisible(false);
   };
 
-  // Add these handlers for the filter functionality
+  // Filter functionality update for multiple location tags
   const handleAddLocationTag = () => {
     if (!locationFilter.trim()) return;
     if (!locationFilterTags.includes(locationFilter)) {
-      setLocationFilterTags([locationFilter]);
+      setLocationFilterTags([...locationFilterTags, locationFilter]);
     }
     setLocationFilter('');
   };
@@ -255,9 +293,15 @@ export function BoardScreen() {
     }
   };
 
+  const handleSelectPredefinedTag = (tag: string) => {
+    if (!editedTags.includes(tag)) {
+      setEditedTags([...editedTags, tag]);
+    }
+  };
+
   const handleApplyFilter = () => {
     setActiveFilters({
-      location: locationFilterTags.length > 0 ? locationFilterTags[0] : '',
+      location: locationFilterTags.length > 0 ? locationFilterTags.join(', ') : '',
       tags: [...tagFilterTags],
     });
     setIsFilterModalVisible(false);
@@ -288,6 +332,7 @@ export function BoardScreen() {
   };
 
   const handleEditBoard = (data: { name: string; coverImage?: string }) => {
+    // API Integration point: Replace with API call to update board
     setBoard(prev => ({
       ...prev,
       name: data.name,
@@ -360,10 +405,56 @@ export function BoardScreen() {
     setEditedTags(editedTags.filter(tag => tag !== tagToRemove));
   };
   
-  const handleSelectPredefinedTag = (tag: string) => {
-    if (!editedTags.includes(tag)) {
-      setEditedTags([...editedTags, tag]);
-    }
+  const handleLocationPress = (locationId: string) => {
+    navigation.navigate('LocationDetails', { locationId });
+  };
+
+  // Display active filters below search
+  const renderActiveFilters = () => {
+    if (activeFilters.tags.length === 0 && !activeFilters.location) return null;
+    
+    return (
+      <View style={styles.activeFiltersContainer}>
+        <View style={styles.activeFilterTagsWrapper}>
+          {activeFilters.location && activeFilters.location.split(', ').map((locationFilter, idx) => (
+            <TouchableOpacity 
+              key={`loc-${idx}`}
+              style={[styles.activeFilterTag, styles.locationFilterTag]}
+              onPress={() => handleRemoveFilter(locationFilter)}
+            >
+              <Text style={styles.activeFilterText}>{locationFilter}</Text>
+              <X size={16} color="#1F2937" />
+            </TouchableOpacity>
+          ))}
+          {activeFilters.tags.map((tag, index) => (
+            <TouchableOpacity 
+              key={`tag-${index}`}
+              style={[styles.activeFilterTag, { backgroundColor: getTagColor(tag) }]}
+              onPress={() => handleRemoveFilter(tag)}
+            >
+              <Text style={styles.activeFilterText}>{tag}</Text>
+              <X size={16} color="#1F2937" />
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+        <TouchableOpacity
+          style={styles.clearFiltersButton}
+          onPress={handleClearFilters}
+        >
+          <Text style={styles.clearFiltersText}>Clear filters</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Add a function to remove filters
+  const handleRemoveFilter = (filter: string) => {
+    setActiveFilters(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== filter),
+      location: filter === prev.location ? '' : prev.location,
+    }));
   };
 
   return (
@@ -379,6 +470,23 @@ export function BoardScreen() {
           <Edit2 size={20} color="#FFFFFF" />
           <Text style={styles.editButtonText}>Edit Board</Text>
         </TouchableOpacity>
+      </View>
+      
+      {/* Cover Image */}
+      <View style={styles.coverImageContainer}>
+        {board.coverImage ? (
+          <Image 
+            source={{ uri: board.coverImage }}
+            style={styles.coverImage}
+            onError={() => {
+              // Handle image loading errors
+            }}
+          />
+        ) : (
+          <View style={styles.coverPlaceholder}>
+            <PlaceholderImage size={36} />
+          </View>
+        )}
       </View>
 
       <Text style={styles.title}>{board.name}</Text>
@@ -407,49 +515,26 @@ export function BoardScreen() {
         </View>
       </View>
 
-      {(activeFilters.tags.length > 0 || activeFilters.location) && (
-        <View style={styles.activeFiltersContainer}>
-          {activeFilters.location && (
-            <TouchableOpacity 
-              style={styles.activeFilterTag}
-              onPress={() => handleClearFilters()}
-            >
-              <Text style={styles.activeFilterText}>{activeFilters.location}</Text>
-              <X size={16} color="#FFFFFF" />
-            </TouchableOpacity>
+      {renderActiveFilters()}
+
+      {filteredLocations.length > 0 ? (
+        <FlatList
+          data={filteredLocations}
+          renderItem={({ item }) => (
+            <LocationCard 
+              location={item}
+              onEdit={() => handleOpenEditModal(item)}
+              onPress={() => handleLocationPress(item.id)}
+            />
           )}
-          {activeFilters.tags.map((tag, index) => (
-            <TouchableOpacity 
-              key={index}
-              style={styles.activeFilterTag}
-              onPress={() => {
-                setActiveFilters(prev => ({
-                  ...prev,
-                  tags: prev.tags.filter(t => t !== tag),
-                }));
-              }}
-            >
-              <Text style={styles.activeFilterText}>{tag}</Text>
-              <X size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity 
-            style={styles.clearFiltersButton}
-            onPress={handleClearFilters}
-          >
-            <Text style={styles.clearFiltersText}>Clear filters</Text>
-          </TouchableOpacity>
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContent}
+        />
+      ) : (
+        <View style={styles.emptyStateContainer}>
+          <Text style={styles.emptyStateText}>No location results</Text>
         </View>
       )}
-
-      <FlatList
-        data={filteredLocations}
-        renderItem={({ item }) => (
-          <LocationCard location={item} onEdit={() => handleOpenEditModal(item)} />
-        )}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-      />
 
       {/* Add Locations Modal */}
       <Modal
@@ -631,7 +716,7 @@ export function BoardScreen() {
         </View>
       </Modal>
 
-      {/* Filter Modal - Updated version */}
+      {/* Filter Modal */}
       <Modal
         transparent
         visible={isFilterModalVisible}
@@ -641,9 +726,6 @@ export function BoardScreen() {
         <View style={styles.filterModalContainer}>
           <View style={styles.filterModalContent}>
             <View style={styles.filterModalHeader}>
-              <TouchableOpacity onPress={() => setIsFilterModalVisible(false)}>
-                <X size={20} color="#6B7280" />
-              </TouchableOpacity>
               <Text style={styles.filterModalTitle}>Filter by</Text>
             </View>
 
@@ -652,7 +734,7 @@ export function BoardScreen() {
               
               <View style={styles.tagInputContainer}>
                 {locationFilterTags.map((tag, index) => (
-                  <View key={index} style={styles.selectedTagItem}>
+                  <View key={index} style={[styles.selectedTagItem, styles.locationTagItem]}>
                     <Text style={styles.selectedTagText}>{tag}</Text>
                     <TouchableOpacity onPress={() => handleRemoveLocationTag(tag)}>
                       <X size={14} color="#6A62B7" />
@@ -718,9 +800,9 @@ export function BoardScreen() {
             <View style={styles.filterActions}>
               <TouchableOpacity
                 style={styles.filterActionButton}
-                onPress={handleClearFilters}
+                onPress={() => setIsFilterModalVisible(false)}
               >
-                <Text style={styles.filterActionButtonText}>Clear All</Text>
+                <Text style={styles.filterActionButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.filterActionButton, styles.applyButton]}
@@ -861,90 +943,95 @@ export function BoardScreen() {
         animationType="fade"
         transparent={true}
       >
-        <TouchableOpacity 
-          style={styles.editModalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsEditModalVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          <View style={styles.editModalContainer}>
-            <ScrollView contentContainerStyle={styles.editModalContent}>
-              <View style={styles.editModalHeader}>
-                <Text style={styles.editModalTitle}>{currentLocation?.name}</Text>
-                <Text style={styles.editModalSubtitle}>{currentLocation?.category}</Text>
-                <Text style={styles.editModalLocation}>{currentLocation?.location}</Text>
-                <TouchableOpacity 
-                  style={styles.closeButton}
-                  onPress={() => setIsEditModalVisible(false)}
-                >
-                  <X size={20} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
+          <TouchableOpacity 
+            style={styles.editModalOverlay}
+            activeOpacity={1}
+            onPress={() => setIsEditModalVisible(false)}
+          >
+            <View style={styles.editModalContainer}>
+              <ScrollView contentContainerStyle={styles.editModalContent}>
+                <View style={styles.editModalHeader}>
+                  <Text style={styles.editModalTitle}>{currentLocation?.name}</Text>
+                  <Text style={styles.editModalSubtitle}>{currentLocation?.category}</Text>
+                  <Text style={styles.editModalLocation}>{currentLocation?.location}</Text>
+                  <TouchableOpacity 
+                    style={styles.closeButton}
+                    onPress={() => setIsEditModalVisible(false)}
+                  >
+                    <X size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
 
-              <View style={styles.editSection}>
-                <Text style={styles.editSectionTitle}>Tags</Text>
-                <View style={styles.tagInputContainer}>
-                  {editedTags.map((tag, index) => (
-                    <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
-                      <Text style={styles.selectedTagText}>{tag}</Text>
-                      <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
-                        <X size={14} color="#6A62B7" />
-                      </TouchableOpacity>
+                <View style={styles.editSection}>
+                  <Text style={styles.editSectionTitle}>Tags</Text>
+                  <View style={styles.tagInputContainer}>
+                    {editedTags.map((tag, index) => (
+                      <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
+                        <Text style={styles.selectedTagText}>{tag}</Text>
+                        <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
+                          <X size={14} color="#6A62B7" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    <TextInput
+                      style={[
+                        styles.tagInputWithTags,
+                        editedTags.length > 0 ? {} : { minWidth: '100%' }
+                      ]}
+                      placeholder={editedTags.length > 0 ? "" : "+ Add tag"}
+                      value={tagInput}
+                      onChangeText={setTagInput}
+                      onFocus={() => setShowTagSuggestions(true)}
+                      onSubmitEditing={handleAddTag}
+                    />
+                  </View>
+                  
+                  {showTagSuggestions && (
+                    <View style={styles.tagsSection}>
+                      <View style={styles.tagsGrid}>
+                        {PREDEFINED_TAGS.map((tag, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            style={[
+                              styles.tagItem,
+                              { backgroundColor: getTagColor(tag) },
+                              editedTags.includes(tag) && styles.selectedPredefinedTag
+                            ]}
+                            onPress={() => handleSelectPredefinedTag(tag)}
+                          >
+                            <Text style={styles.tagText}>{tag}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
-                  ))}
+                  )}
+                </View>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.editSectionTitle}>Note</Text>
                   <TextInput
-                    style={[
-                      styles.tagInputWithTags,
-                      editedTags.length > 0 ? {} : { minWidth: '100%' }
-                    ]}
-                    placeholder={editedTags.length > 0 ? "" : "+ Add tag"}
-                    value={tagInput}
-                    onChangeText={setTagInput}
-                    onFocus={() => setShowTagSuggestions(true)}
-                    onSubmitEditing={handleAddTag}
+                    style={styles.noteInput}
+                    placeholder="Add a note..."
+                    value={editedNote}
+                    onChangeText={setEditedNote}
+                    multiline
                   />
                 </View>
-                
-                {showTagSuggestions && (
-                  <View style={styles.tagsSection}>
-                    <View style={styles.tagsGrid}>
-                      {PREDEFINED_TAGS.map((tag, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          style={[
-                            styles.tagItem,
-                            { backgroundColor: getTagColor(tag) },
-                            editedTags.includes(tag) && styles.selectedPredefinedTag
-                          ]}
-                          onPress={() => handleSelectPredefinedTag(tag)}
-                        >
-                          <Text style={styles.tagText}>{tag}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                )}
-              </View>
 
-              <View style={styles.editSection}>
-                <Text style={styles.editSectionTitle}>Note</Text>
-                <TextInput
-                  style={styles.noteInput}
-                  placeholder="Add a note..."
-                  value={editedNote}
-                  onChangeText={setEditedNote}
-                  multiline
-                />
-              </View>
-
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSaveLocationEdit}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={handleSaveLocationEdit}
+                >
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -1204,15 +1291,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeFiltersContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     paddingHorizontal: 16,
     marginBottom: 16,
+  },
+  activeFilterTagsWrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 8,
   },
   activeFilterTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#6A62B7',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1220,27 +1309,36 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   activeFilterText: {
-    color: '#FFFFFF',
+    color: '#1F2937',
     marginRight: 8,
+    fontWeight: '500',
   },
   clearFiltersButton: {
-    marginLeft: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
   },
   clearFiltersText: {
     color: '#6A62B7',
     fontSize: 14,
+    fontWeight: '500',
   },
   filterModalContainer: {
     flex: 1,
-    justifyContent: 'flex-start',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start',
   },
   filterModalContent: {
     backgroundColor: 'white',
     width: '100%',
-    padding: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   filterModalHeader: {
     flexDirection: 'row',
@@ -1248,10 +1346,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   filterModalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D2B3F',
-    marginLeft: 15,
+    fontSize: 20,
+    fontWeight: '600',
+    marginLeft: 16,
+    color: '#1F2937',
   },
   filterSection: {
     marginBottom: 20,
@@ -1481,5 +1579,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  locationTagItem: {
+    backgroundColor: '#DBEAFE',  // Light blue for location tag items
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  coverImageContainer: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    paddingHorizontal: 16,
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    borderRadius: 12,
+  },
+  coverPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
   },
 }); 

@@ -57,6 +57,68 @@ export function SelectedLocationsScreen() {
   const { showToast } = useToast();
   const sourceLink = (route.params as { sourceLink: string })?.sourceLink;
   
+  // API Integration Comments:
+  // This screen handles newly extracted locations and provides options to save them
+  // The implementation should include these API calls:
+  //
+  // 1. Saving locations to the central list:
+  // When locations are extracted or created, they should be saved to the backend
+  // const saveLocations = async (newLocations) => {
+  //   try {
+  //     const savedLocations = await api.saveLocations(newLocations);
+  //     setLocations(savedLocations);
+  //     // Display success toast
+  //     showToast('Locations saved successfully!');
+  //   } catch (error) {
+  //     console.error('Error saving locations:', error);
+  //     // Display error toast
+  //     showToast('Failed to save locations. Please try again.');
+  //   }
+  // };
+  //
+  // 2. Fetching available boards to add locations to:
+  // useEffect(() => {
+  //   const fetchBoards = async () => {
+  //     try {
+  //       const response = await api.getBoards();
+  //       setBoards(response.data);
+  //     } catch (error) {
+  //       console.error('Error fetching boards:', error);
+  //     }
+  //   };
+  //
+  //   fetchBoards();
+  // }, []);
+  //
+  // 3. Adding locations to a selected board:
+  // const addLocationsToBoard = async (boardId, locationIds) => {
+  //   try {
+  //     await api.addLocationsToBoard(boardId, locationIds);
+  //     // Display success toast
+  //     showToast('Locations added to board!');
+  //     navigation.navigate('Board', { boardId });
+  //   } catch (error) {
+  //     console.error('Error adding locations to board:', error);
+  //     // Display error toast
+  //     showToast('Failed to add locations to board. Please try again.');
+  //   }
+  // };
+  //
+  // 4. Creating a new board and adding locations to it:
+  // const createBoardAndAddLocations = async (boardData, locationIds) => {
+  //   try {
+  //     const newBoard = await api.createBoard(boardData);
+  //     await api.addLocationsToBoard(newBoard.id, locationIds);
+  //     // Display success toast
+  //     showToast(`Board "${boardData.name}" created with locations!`);
+  //     navigation.navigate('Board', { boardId: newBoard.id });
+  //   } catch (error) {
+  //     console.error('Error creating board with locations:', error);
+  //     // Display error toast
+  //     showToast('Failed to create board. Please try again.');
+  //   }
+  // };
+  
   // State for locations
   const [locations, setLocations] = useState<LocationWithEditableContent[]>([
     {
@@ -90,6 +152,7 @@ export function SelectedLocationsScreen() {
   const [currentLocationId, setCurrentLocationId] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [tagsToAdd, setTagsToAdd] = useState<string[]>([]);
   const inputRef = useRef<TextInput>(null);
 
   // Note modal state
@@ -140,7 +203,7 @@ export function SelectedLocationsScreen() {
     .sort((a, b) => {
       return (b.lastAccessed?.getTime() || 0) - (a.lastAccessed?.getTime() || 0);
     })
-    .slice(0, 5); // Get top 5 recent boards
+    .slice(0, 3); // Get top 3 recent boards instead of 5
 
   // Get all boards filtered by search query
   const filteredBoards = boards.filter(board => 
@@ -154,8 +217,9 @@ export function SelectedLocationsScreen() {
   const openTagModal = (locationId: string) => {
     setCurrentLocationId(locationId);
     setIsTagModalVisible(true);
-    // Reset tag input when opening modal
+    // Reset tag input and tags to add when opening modal
     setTagInput('');
+    setTagsToAdd([]);
     // Show suggestions after a short delay to ensure modal is fully visible
     setTimeout(() => {
       setShowTagSuggestions(true);
@@ -167,61 +231,49 @@ export function SelectedLocationsScreen() {
     setIsTagModalVisible(false);
     setShowTagSuggestions(false);
     setCurrentLocationId(null);
+    setTagsToAdd([]);
   };
 
   const handleAddTag = () => {
-    if (!currentLocationId || !tagInput.trim()) return;
+    if (!tagInput.trim()) return;
+    
+    const newTag = tagInput.trim();
+    // Check if tag is already in the list to add
+    if (!tagsToAdd.includes(newTag) && 
+        !getCurrentLocationTags().includes(newTag)) {
+      setTagsToAdd([...tagsToAdd, newTag]);
+    }
+    setTagInput('');
+  };
+
+  const handleSaveTags = () => {
+    if (!currentLocationId || tagsToAdd.length === 0) return;
 
     const updatedLocations = locations.map(location => {
       if (location.id === currentLocationId) {
-        // Check if tag already exists (case insensitive)
-        const tagExists = location.editableTags.some(
-          tag => tag.toLowerCase() === tagInput.trim().toLowerCase()
-        );
-
-        if (!tagExists) {
-          return {
-            ...location,
-            editableTags: [...location.editableTags, tagInput.trim()],
-          };
-        }
+        return {
+          ...location,
+          editableTags: [...location.editableTags, ...tagsToAdd],
+        };
       }
       return location;
     });
 
     setLocations(updatedLocations);
-    setTagInput('');
-    // Show a toast to confirm tag was added
-    showToast(`Tag "${tagInput.trim()}" added`);
+    // Show a toast to confirm tags were added
+    showToast(`${tagsToAdd.length} tag${tagsToAdd.length > 1 ? 's' : ''} added`);
+    closeTagModal();
   };
 
   const handleSelectPredefinedTag = (tag: string) => {
-    if (!currentLocationId) return;
-
-    const updatedLocations = locations.map(location => {
-      if (location.id === currentLocationId) {
-        // Check if tag already exists (case insensitive)
-        const tagExists = location.editableTags.some(
-          existingTag => existingTag.toLowerCase() === tag.toLowerCase()
-        );
-
-        if (!tagExists) {
-          return {
-            ...location,
-            editableTags: [...location.editableTags, tag],
-          };
-        }
-      }
-      return location;
-    });
-
-    setLocations(updatedLocations);
+    // Check if tag is already in the list to add or in current location tags
+    if (!tagsToAdd.includes(tag) && !getCurrentLocationTags().includes(tag)) {
+      setTagsToAdd([...tagsToAdd, tag]);
+    }
   };
 
-  const handleTagInputSubmit = () => {
-    if (tagInput.trim()) {
-      handleAddTag();
-    }
+  const handleRemoveTagToAdd = (tagToRemove: string) => {
+    setTagsToAdd(tagsToAdd.filter(tag => tag !== tagToRemove));
   };
 
   const handleRemoveTag = (locationId: string, tagToRemove: string) => {
@@ -236,6 +288,12 @@ export function SelectedLocationsScreen() {
     });
 
     setLocations(updatedLocations);
+  };
+
+  const handleTagInputSubmit = () => {
+    if (tagInput.trim()) {
+      handleAddTag();
+    }
   };
 
   const handleOpenNoteModal = (locationId: string) => {
@@ -308,9 +366,18 @@ export function SelectedLocationsScreen() {
       locationCount: 0,
       lastAccessed: new Date(),
     };
+    
+    // Add the new board to the boards list
     setBoards(prev => [newBoard, ...prev]);
+    
+    // Select the newly created board
     setSelectedBoard(newBoard.id);
+    
+    // Close only the new board modal, not the board selection modal
     setIsNewBoardModalVisible(false);
+    
+    // Show a toast notification
+    showToast(`Board "${data.name}" created`);
   };
 
   const filteredTags = PREDEFINED_TAGS.filter(
@@ -458,9 +525,29 @@ export function SelectedLocationsScreen() {
                       ]}
                     >
                       <Text style={styles.tagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Display tags to be added */}
+            {tagsToAdd.length > 0 && (
+              <View style={styles.currentTagsContainer}>
+                <Text style={styles.currentTagsTitle}>Tags to add:</Text>
+                <View style={styles.currentTagsList}>
+                  {tagsToAdd.map((tag, index) => (
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.tagItem,
+                        { backgroundColor: getTagColor(tag) }
+                      ]}
+                    >
+                      <Text style={styles.tagText}>{tag}</Text>
                       <TouchableOpacity 
                         style={styles.removeTagButton}
-                        onPress={() => handleRemoveTag(currentLocationId as string, tag)}
+                        onPress={() => handleRemoveTagToAdd(tag)}
                       >
                         <X size={12} color="#6A62B7" />
                       </TouchableOpacity>
@@ -485,30 +572,36 @@ export function SelectedLocationsScreen() {
 
             {showTagSuggestions && (
               <View style={styles.tagsSection}>
-                <Text style={styles.tagsSectionTitle}>Tags</Text>
+                <Text style={styles.tagsSectionTitle}>Suggested Tags</Text>
                 <ScrollView style={styles.tagsList}>
                   <View style={styles.tagsGrid}>
-                    {filteredTags.map((tag, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={[
-                          styles.tagSuggestion,
-                          { backgroundColor: getTagColor(tag) }
-                        ]}
-                        onPress={() => handleSelectPredefinedTag(tag)}
-                      >
-                        <Text style={styles.tagSuggestionText}>{tag}</Text>
-                      </TouchableOpacity>
-                    ))}
+                    {PREDEFINED_TAGS
+                      .filter(tag => 
+                        !getCurrentLocationTags().includes(tag) && 
+                        !tagsToAdd.includes(tag)
+                      )
+                      .map((tag, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={[
+                            styles.tagSuggestion,
+                            { backgroundColor: getTagColor(tag) }
+                          ]}
+                          onPress={() => handleSelectPredefinedTag(tag)}
+                        >
+                          <Text style={styles.tagSuggestionText}>{tag}</Text>
+                        </TouchableOpacity>
+                      ))
+                    }
                   </View>
                 </ScrollView>
               </View>
             )}
 
             <TouchableOpacity
-              style={styles.addTagButton}
-              onPress={handleAddTag}
-              disabled={!tagInput.trim()}
+              style={[styles.addTagButton, tagsToAdd.length === 0 && styles.disabledButton]}
+              onPress={handleSaveTags}
+              disabled={tagsToAdd.length === 0}
             >
               <Text style={styles.addTagButtonText}>Add</Text>
             </TouchableOpacity>
@@ -661,7 +754,7 @@ export function SelectedLocationsScreen() {
               <TouchableOpacity
                 style={styles.createBoardButton}
                 onPress={() => {
-                  setIsBoardModalVisible(false);
+                  // Just open the new board modal without closing the current one
                   setIsNewBoardModalVisible(true);
                 }}
               >
@@ -1122,5 +1215,9 @@ const styles = StyleSheet.create({
   currentTagsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  // Tag modal styles
+  disabledButton: {
+    opacity: 0.6,
   },
 }); 

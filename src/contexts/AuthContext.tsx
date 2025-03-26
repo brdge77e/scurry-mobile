@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation, NavigationState } from "@react-navigation/native";
+import { useNavigation, NavigationState, CommonActions } from "@react-navigation/native";
 
 interface User {
   email: string;
@@ -35,6 +35,93 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const navigation = useNavigation();
+  const navigationRef = useRef(navigation);
+
+  // API Integration Comments:
+  // This authentication context should be connected to your backend API
+  // The implementation should include these API calls:
+  //
+  // 1. Authentication check on app start:
+  // Replace the AsyncStorage check with an API token validation:
+  // const checkAuth = async () => {
+  //   try {
+  //     const token = await AsyncStorage.getItem("auth_token");
+  //     
+  //     if (token) {
+  //       // Validate token with the backend
+  //       const response = await api.validateToken(token);
+  //       
+  //       if (response.valid) {
+  //         setUser(response.user);
+  //       } else {
+  //         // Token is invalid or expired
+  //         await AsyncStorage.removeItem("auth_token");
+  //         await AsyncStorage.removeItem("user");
+  //       }
+  //     }
+  //     
+  //     setIsLoading(false);
+  //     setIsInitialized(true);
+  //     
+  //     // Redirect logic remains the same...
+  //   } catch (error) {
+  //     console.error("Error checking auth:", error);
+  //     setIsLoading(false);
+  //     setIsInitialized(true);
+  //   }
+  // };
+  //
+  // 2. Login function with API integration:
+  // const login = async (email: string, password: string, provider = "email") => {
+  //   setIsLoading(true);
+  //   try {
+  //     let response;
+  //     
+  //     if (provider === "email") {
+  //       response = await api.login(email, password);
+  //     } else {
+  //       // Handle social login
+  //       response = await api.socialAuth(provider, token);
+  //     }
+  //     
+  //     await AsyncStorage.setItem("auth_token", response.token);
+  //     await AsyncStorage.setItem("user", JSON.stringify(response.user));
+  //     
+  //     setUser(response.user);
+  //     
+  //     // Navigation logic remains the same...
+  //   } catch (error) {
+  //     console.error("Error logging in:", error);
+  //     throw error; // Rethrow so the login screen can handle it
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+  //
+  // 3. Logout function with API integration:
+  // const logout = async () => {
+  //   try {
+  //     const token = await AsyncStorage.getItem("auth_token");
+  //     
+  //     if (token) {
+  //       // Notify the backend about logout (optional)
+  //       await api.logout(token);
+  //     }
+  //     
+  //     await AsyncStorage.removeItem("auth_token");
+  //     await AsyncStorage.removeItem("user");
+  //     setUser(null);
+  //     
+  //     // Navigation logic remains the same...
+  //   } catch (error) {
+  //     console.error("Error logging out:", error);
+  //   }
+  // };
+
+  // Update the navigation reference whenever it changes
+  useEffect(() => {
+    navigationRef.current = navigation;
+  }, [navigation]);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -59,10 +146,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const currentRoute = state?.routes[0]?.name;
               
               if (currentRoute && protectedRoutes.includes(currentRoute)) {
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: "Login" }],
-                });
+                // Use CommonActions instead of reset
+                navigation.dispatch(
+                  CommonActions.navigate({
+                    name: 'Login'
+                  })
+                );
               }
             } catch (navError) {
               console.error("Navigation error:", navError);
@@ -102,11 +191,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(mockUser);
       
       // Reset navigation to Main if navigation is available
-      if (navigation && navigation.reset) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Main" }],
-        });
+      if (navigationRef.current) {
+        setTimeout(() => {
+          navigationRef.current.dispatch(
+            CommonActions.navigate({
+              name: 'Main'
+            })
+          );
+        }, 100);
       }
     } catch (error) {
       console.error("Error logging in:", error);
@@ -121,11 +213,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       
       // Reset navigation to Login if navigation is available
-      if (navigation && navigation.reset) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Login" }],
-        });
+      if (navigationRef.current) {
+        setTimeout(() => {
+          navigationRef.current.dispatch(
+            CommonActions.navigate({
+              name: 'Login'
+            })
+          );
+        }, 100);
       }
     } catch (error) {
       console.error("Error logging out:", error);

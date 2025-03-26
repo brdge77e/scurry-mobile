@@ -41,15 +41,19 @@ export function BoardEditModal({
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 1,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      setCoverImage(result.assets[0].uri);
+      if (!result.canceled) {
+        setCoverImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      alert('Failed to pick image. Please try again.');
     }
   };
 
@@ -88,7 +92,7 @@ export function BoardEditModal({
               <View style={styles.placeholderContainer}>
                 <ImageIcon size={32} color="#6B7280" />
                 <Text style={styles.placeholderText}>
-                  Click to add or change board cover
+                  Tap here to add a cover image
                 </Text>
               </View>
             )}

@@ -19,6 +19,58 @@ export function LoginScreen() {
   const { login, isLoading, isAuthenticated } = useAuth();
   const { showToast } = useToast();
 
+  // API Integration Comments:
+  // This login screen should be connected to your authentication API
+  // The implementation should include these API calls:
+  //
+  // 1. Email Login:
+  // Replace the mock login with an actual API call:
+  // const handleEmailLogin = async () => {
+  //   try {
+  //     if (!email.trim() || !email.includes('@')) {
+  //       showToast('Please enter a valid email address', 'error');
+  //       return;
+  //     }
+  //
+  //     // For email-only login (passwordless):
+  //     await api.sendLoginLink(email);
+  //     showToast('Check your email for a login link', 'success');
+  //     
+  //     // For email + password:
+  //     // const response = await api.login(email, password);
+  //     // await AsyncStorage.setItem('auth_token', response.token);
+  //     // await AsyncStorage.setItem('user', JSON.stringify(response.user));
+  //   } catch (error) {
+  //     console.error('Login error:', error);
+  //     showToast('Login failed. Please try again.', 'error');
+  //   }
+  // };
+  //
+  // 2. Social Login:
+  // Integrate with social providers:
+  // const handleProviderLogin = async (provider: string) => {
+  //   try {
+  //     // Use Expo AuthSession or a similar library:
+  //     // For example with Google:
+  //     const { type, params } = await Google.logInAsync({
+  //       clientId: 'YOUR_GOOGLE_CLIENT_ID',
+  //       scopes: ['profile', 'email']
+  //     });
+  //
+  //     if (type === 'success') {
+  //       // Send the token to your backend
+  //       const response = await api.socialAuth(provider, params.accessToken);
+  //       await AsyncStorage.setItem('auth_token', response.token);
+  //       await AsyncStorage.setItem('user', JSON.stringify(response.user));
+  //     } else {
+  //       showToast('Social login cancelled or failed', 'error');
+  //     }
+  //   } catch (error) {
+  //     console.error('Social login error:', error);
+  //     showToast('Social login failed. Please try again.', 'error');
+  //   }
+  // };
+
   const handleEmailLogin = () => {
     if (!email.trim() || !email.includes('@')) {
       showToast('Please enter a valid email address', 'error');
