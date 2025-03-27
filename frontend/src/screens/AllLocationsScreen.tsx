@@ -93,16 +93,18 @@ export function AllLocationsScreen() {
 
   // Filter locations based on search query and active filters
   const filteredLocations = locations.filter(location => {
-    const matchesSearch = location.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // For location, consider it a match if any of the active filter locations are present
+    const name = location.name ?? '';
+    const locStr = location.location ?? '';
+    const tags = location.editableTags ?? [];
+  
+    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLocation = !activeFilters.location || 
-      (activeFilters.location.split(', ').some(filterLoc => 
-        location.location.toLowerCase().includes(filterLoc.toLowerCase())
-      ));
-    
-      const matchesTags = activeFilters.tags.length === 0 || 
-      activeFilters.tags.every(tag => (location.editableTags || []).includes(tag));    
+      activeFilters.location.split(', ').some(filterLoc => 
+        locStr.toLowerCase().includes(filterLoc.toLowerCase())
+      );
+    const matchesTags = activeFilters.tags.length === 0 || 
+      activeFilters.tags.every(tag => tags.includes(tag));
+  
     return matchesSearch && matchesLocation && matchesTags;
   });
 
