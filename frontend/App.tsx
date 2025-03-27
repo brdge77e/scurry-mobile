@@ -9,6 +9,8 @@ import { ToastProvider } from './src/hooks/useToast';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { RootStackParamList, MainTabParamList } from './src/types/navigation';
 import { View, StyleSheet } from 'react-native';
+import 'react-native-url-polyfill/auto';
+import 'react-native-get-random-values';
 
 // Import screens
 import { HomeScreen } from './src/screens/HomeScreen';

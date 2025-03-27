@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { RootStackParamList } from '../types/navigation';
 import { useToast } from '../hooks/useToast';
 import { Location } from '../types/index';
 import { BoardEditModal } from '../components/BoardEditModal';
+import supabase from '../utils/supabaseClient';
 
 type SelectedLocationsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SelectedLocations'>;
 
@@ -57,6 +58,18 @@ export function SelectedLocationsScreen() {
   const { showToast } = useToast();
   const sourceLink = (route.params as { sourceLink: string })?.sourceLink;
   
+  useEffect(() => {
+    const fetchBoards = async () => {
+      const { data, error } = await supabase
+        .from('boards')
+        .select('*')
+        .order('lastAccessed', { ascending: false });
+
+      if (error) console.error('Error fetching boards:', error);
+      else setBoards(data);
+    };
+    fetchBoards();
+  }, []);
   // API Integration Comments:
   // This screen handles newly extracted locations and provides options to save them
   // The implementation should include these API calls:
@@ -340,8 +353,32 @@ export function SelectedLocationsScreen() {
     setLocations(updatedLocations);
   };
 
-  const handleConfirm = () => {
-    setIsBoardModalVisible(true);
+  const saveLocationsToSupabase = async () => {
+    const userId = (await supabase.auth.getUser()).data?.user?.id;
+  
+    const { error } = await supabase.from('location').insert(
+      locations.map(loc => ({
+        name: loc.name,
+        address: loc.location,
+        description: loc.category,
+        tag: loc.editableTags,
+        note: loc.note,
+        source_link: loc.sourceLink,
+        user_id: userId,
+      }))
+    );
+  
+    if (error) {
+      console.error('Error saving locations:', error);
+      showToast('Failed to save locations');
+    } else {
+      showToast('Locations saved to Supabase');
+    }
+  };  
+
+  const handleConfirm = async () => {
+    await saveLocationsToSupabase(); // Persist locations
+    setIsBoardModalVisible(true);    // Then continue with flow
   };
 
   const handleAddToBoard = (boardId: string) => {

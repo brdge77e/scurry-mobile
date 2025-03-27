@@ -35,46 +35,37 @@ export function LinkResultsScreen() {
   const sourceLink = (route.params as { sourceLink: string })?.sourceLink;
 
   React.useEffect(() => {
-    const fetchLocations = async () => {
+    const extractLocations = async () => {
       try {
-        // Simulate API call
-        await new Promise<void>((resolve) => setTimeout(resolve, 2000));
-        
-        // Mock data
-        const mockLocations: Location[] = [
-          {
-            id: '1',
-            name: 'Central Park',
-            address: 'New York, NY',
-            distance: '0.5 mi',
-            rating: 4.8,
+        const response = await fetch('http://localhost:8000/extract-locations/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          {
-            id: '2',
-            name: 'Times Square',
-            address: 'New York, NY',
-            distance: '1.2 mi',
-            rating: 4.5,
-          },
-          {
-            id: '3',
-            name: 'Empire State Building',
-            address: 'New York, NY',
-            distance: '2.0 mi',
-            rating: 4.7,
-          },
-        ];
-
-        setLocations(mockLocations);
+          body: JSON.stringify({ url: sourceLink }),
+        });
+  
+        const data = await response.json();
+        console.log('✅ Extracted locations:', data.locations);
+  
+        // You can then update state like:
+        setLocations(data.locations.map((loc: any, i: any) => ({
+          id: `${i}`,
+          name: loc,
+          address: '',
+          distance: '',
+          rating: 4.5,
+        })));
       } catch (error) {
-        showToast('Failed to fetch locations', 'error');
+        showToast('Failed to extract locations', 'error');
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchLocations();
-  }, []);
+  
+    extractLocations();
+  }, []);  
 
   const handleLocationSelect = (id: string) => {
     setSelectedLocations(prev => {

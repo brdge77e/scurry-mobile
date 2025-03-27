@@ -59,9 +59,14 @@ export function BoardEditModal({
 
   const handleSave = () => {
     if (!name.trim()) return;
+  
     onSave({ name: name.trim(), coverImage });
-    setName('');
-    setCoverImage(undefined);
+  
+    // 👇 Only reset state if in "create" mode
+    if (mode === 'create') {
+      setName('');
+      setCoverImage(undefined);
+    }
   };
 
   return (

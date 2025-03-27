@@ -46,7 +46,7 @@ export function NoteDialog({
         <TextInput
           style={styles.input}
           value={note}
-          onChangeText={setNote}
+          onChangeText={set}
           placeholder="Enter your note here..."
           multiline
           numberOfLines={4}

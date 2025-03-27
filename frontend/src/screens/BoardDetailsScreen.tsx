@@ -12,29 +12,29 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Board, Location } from '../types/index';
 import { PlaceholderImage } from '../components/PlaceholderImage';
 
-const MOCK_LOCATIONS: Location[] = [
-  {
-    id: '1',
-    name: 'Central Park',
-    location: 'New York, NY',
-    imageSrc: 'https://example.com/central-park.jpg',
-    category: 'Park',
-    isFavorite: false,
-    tags: ['park', 'nature', 'recreation'],
-    notes: ['A beautiful urban park in the heart of New York City'],
-  },
-  {
-    id: '2',
-    name: 'Times Square',
-    location: 'New York, NY',
-    imageSrc: 'https://example.com/times-square.jpg',
-    category: 'Landmark',
-    isFavorite: false,
-    tags: ['landmark', 'entertainment', 'shopping'],
-    notes: ['The bustling heart of Manhattan'],
-  },
-  // Add more mock locations as needed
-];
+// const MOCK_LOCATIONS: Location[] = [
+//   {
+//     id: '1',
+//     name: 'Central Park',
+//     location: 'New York, NY',
+//     imageSrc: 'https://example.com/central-park.jpg',
+//     category: 'Park',
+//     isFavorite: false,
+//     tags: ['park', 'nature', 'recreation'],
+//     notes: ['A beautiful urban park in the heart of New York City'],
+//   },
+//   {
+//     id: '2',
+//     name: 'Times Square',
+//     location: 'New York, NY',
+//     imageSrc: 'https://example.com/times-square.jpg',
+//     category: 'Landmark',
+//     isFavorite: false,
+//     tags: ['landmark', 'entertainment', 'shopping'],
+//     notes: ['The bustling heart of Manhattan'],
+//   },
+//   // Add more mock locations as needed
+// ];
 
 export function BoardDetailsScreen() {
   const navigation = useNavigation();

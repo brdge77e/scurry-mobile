@@ -12,7 +12,7 @@ export interface Location {
   id: string;
   name: string;
   location: string;
-  imageSrc: string;
+  imageSrc?: string;
   category: string;
   isFavorite: boolean;
   tags?: string[];

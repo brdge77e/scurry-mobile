@@ -20,6 +20,8 @@ import { RootStackParamList } from '../types/navigation';
 import { Location } from '../types/index';
 import { PlaceholderImage } from '../components/PlaceholderImage';
 import { LocationCard } from '../components/LocationCard';
+import { useEffect } from 'react';
+import supabase from '../utils/supabaseClient';
 
 type AllLocationsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AllLocations'>;
 
@@ -42,59 +44,27 @@ interface LocationWithEditableContent extends Location {
   note: string | null;
 }
 
-const MOCK_LOCATIONS: Location[] = [
-  {
-    id: '1',
-    name: 'Central Park',
-    location: 'New York, NY',
-    imageSrc: 'https://example.com/central-park.jpg',
-    category: 'Park',
-    isFavorite: false,
-    tags: ['park', 'nature', 'recreation'],
-    notes: ['A beautiful urban park in the heart of New York City'],
-  },
-  {
-    id: '2',
-    name: 'Times Square',
-    location: 'New York, NY',
-    imageSrc: 'https://example.com/times-square.jpg',
-    category: 'Landmark',
-    isFavorite: false,
-    tags: ['landmark', 'entertainment', 'shopping'],
-    notes: ['The bustling heart of Manhattan'],
-  },
-  // Add more mock locations as needed
-];
-
 export function AllLocationsScreen() {
   const navigation = useNavigation<AllLocationsScreenNavigationProp>();
   
-  // State for locations
-  const [locations, setLocations] = useState<LocationWithEditableContent[]>([
-    {
-      id: '1',
-      name: 'Japan Rail Cafe TOKYO',
-      location: 'Osaka, Japan',
-      category: 'Food',
-      isFavorite: false,
-      tags: ['Food', 'Cafe'],
-      editableTags: ['Food', 'Cafe'],
-      note: 'Great place for Japanese railway enthusiasts',
-      sourceLink: 'https://www.jrailcafe.com',
-    },
-    {
-      id: '2',
-      name: 'SkyTree Cafe 350',
-      location: 'Tokyo, Japan',
-      category: 'Food',
-      isFavorite: true,
-      tags: ['Food'],
-      editableTags: ['Food'],
-      note: null,
-      sourceLink: 'https://www.skytree.jp',
-    },
-    // Add more mock locations as needed
-  ]);
+  const [locations, setLocations] = useState<LocationWithEditableContent[]>([]);
+  const [loading, setLoading] = useState(true); // optional: for loading state
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      const { data, error } = await supabase
+        .from('location')
+        .select('*');
+  
+      if (error) {
+        console.error('Error fetching locations:', error);
+      } else {
+        setLocations(data);
+      }
+    };
+  
+    fetchLocations();
+  }, []);
 
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -204,23 +174,36 @@ export function AllLocationsScreen() {
     setIsEditModalVisible(true);
   };
 
-  const handleSaveLocationEdit = () => {
+  const handleSaveLocationEdit = async () => {
     if (!currentLocation) return;
+  
+    const updatedTags = editedTags;
+    const updatedNote = editedNote.trim();
+  
+    const { error } = await supabase
+      .from('location')
+      .update({
+        tag: updatedTags,
+        note: updatedNote || null,
+      })
+      .eq('id', currentLocation.id);
+  
+    if (error) {
+      console.error('❌ Error saving location:', error);
+      return;
+    }
 
-    const updatedLocations = locations.map(location => {
-      if (location.id === currentLocation.id) {
-        return {
-          ...location,
-          editableTags: editedTags,
-          note: editedNote.trim() || null,
-        };
-      }
-      return location;
-    });
-
-    setLocations(updatedLocations);
+    console.log("✅ Saved to Supabase");
+  
+    // Update local state too
+    const updatedLocations = locations.map(loc =>
+      loc.id === currentLocation.id
+        ? { ...loc, tags: updatedTags, notes: [updatedNote] }
+        : loc
+    );
     setIsEditModalVisible(false);
   };
+  
 
   const handleAddTag = () => {
     if (!tagInput.trim()) return;

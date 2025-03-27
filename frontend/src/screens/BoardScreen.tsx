@@ -22,6 +22,8 @@ import { Location } from '../types/index';
 import { LocationCard } from '../components/LocationCard';
 import { BoardEditModal } from '../components/BoardEditModal';
 import { PlaceholderImage } from '../components/PlaceholderImage';
+import supabase from '../utils/supabaseClient';
+import { useToast } from '../hooks/useToast';
 
 type BoardScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Board'>;
 
@@ -63,7 +65,9 @@ export function BoardScreen() {
   const navigation = useNavigation<BoardScreenNavigationProp>();
   const route = useRoute();
   const { boardId } = route.params as { boardId: string };
-  
+  const { showToast } = useToast();
+  const [showAddLocationModal, setShowAddLocationModal] = useState(false);
+
   // API Integration Comment:
   // When implementing the backend integration, replace the mock data and functions with:
   // 1. Fetch the board data using the boardId from route params
@@ -91,65 +95,50 @@ export function BoardScreen() {
   //   }
   // };
 
-  // Mock board data - replace with API call
-  const [board, setBoard] = useState<Board>({
-    id: boardId,
-    name: 'Japan Grad Trip! 👘',
-    coverImage: 'https://example.com/japan.jpg',
-    emoji: '👘',
-    locations: [
-      {
-        id: '1',
-        name: 'Ghibli Museum',
-        location: 'Tokyo, Japan',
-        category: 'Entertainment',
-        isFavorite: false,
-        tags: ['Entertainment'],
-        editableTags: ['Entertainment'],
-        note: null,
-        sourceLink: 'https://www.ghibli-museum.jp',
-      },
-      {
-        id: '2',
-        name: 'Totoro Cafe',
-        location: 'Osaka, Japan',
-        category: 'Food',
-        isFavorite: false,
-        tags: ['Food'],
-        editableTags: ['Food'],
-        note: null,
-        sourceLink: 'https://example.com/totoro-cafe',
-      },
-      // Add more locations as needed
-    ],
-  });
+  useEffect(() => {
+    const fetchBoardData = async () => {
+      const { data, error } = await supabase
+        .from('boards')
+        .select(`
+          id,
+          name,
+          board_location:board_location (
+            location:location (
+              id,
+              name,
+              description,
+              address,
+              country,
+              tag
+            )
+          )
+        `)
+        .eq('id', boardId)
+        .single();
 
-  // All available locations for adding to board
-  const [allLocations, setAllLocations] = useState<Location[]>([
-    {
-      id: '1',
-      name: 'Japan Rail Cafe TOKYO',
-      location: 'Osaka, Japan',
-      category: 'Food',
-      isFavorite: false,
-      tags: ['Food'],
-      editableTags: ['Food'],
-      note: null,
-      sourceLink: 'https://www.jrailcafe.com',
-    },
-    {
-      id: '2',
-      name: 'SkyTree Cafe 350',
-      location: 'Tokyo, Japan',
-      category: 'Food',
-      isFavorite: false,
-      tags: ['Food'],
-      editableTags: ['Food'],
-      note: null,
-      sourceLink: 'https://www.skytree.jp',
-    },
-    // Add more locations
-  ]);
+      if (error) {
+        console.error('❌ Error fetching board:', error);
+      } else {
+        setBoard({
+          id: data.id,
+          name: data.name,
+          locations: (data.board_location || [])
+            .map(entry => ({
+              ...entry.location,
+              tags: entry.location?.tag || [],
+              editableTags: entry.location?.tag || [],
+              note: entry.location?.note || null,
+            }))
+            .filter(loc => loc), // filter nulls
+          coverImage: data.coverImage || '',
+        });        
+      }
+    };
+  
+    fetchBoardData();
+  }, [boardId]);
+
+  const [allLocations, setAllLocations] = useState<Location[]>([]);
 
   // State for modals
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -158,6 +147,7 @@ export function BoardScreen() {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isBoardSelectionVisible, setIsBoardSelectionVisible] = useState(false);
   const [isNewBoardModalVisible, setIsNewBoardModalVisible] = useState(false);
+  const [boards, setBoards] = useState<Board[]>([]);
 
   // State for search and filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -170,6 +160,22 @@ export function BoardScreen() {
     tags: string[];
   }>({ location: '', tags: [] });
 
+  useEffect(() => {
+    const fetchAllLocations = async () => {
+      const { data, error } = await supabase
+        .from('location')
+        .select('*');
+  
+      if (error) {
+        console.error('Error fetching all locations:', error);
+      } else {
+        setAllLocations(data);
+      }
+    };
+  
+    fetchAllLocations();
+  }, []);
+  
   // State for location selection
   const [selectedLocationsToAdd, setSelectedLocationsToAdd] = useState<string[]>([]);
   const [selectedLocationsToShare, setSelectedLocationsToShare] = useState<string[]>([]);
@@ -195,7 +201,13 @@ export function BoardScreen() {
   const [editedNote, setEditedNote] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
-
+  const [board, setBoard] = useState<Board>({
+    id: '',
+    name: '',
+    locations: [],
+    coverImage: '',
+  });
+  
   // Filter locations based on search query and active filters
   const filteredLocations = board.locations.filter(location => {
     const matchesSearch = location.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -236,19 +248,19 @@ export function BoardScreen() {
     }
   };
 
-  const handleAddLocations = () => {
-    const locationsToAdd = allLocations.filter(location => 
-      selectedLocationsToAdd.includes(location.id)
-    );
+  // const handleAddLocations = () => {
+  //   const locationsToAdd = allLocations.filter(location => 
+  //     selectedLocationsToAdd.includes(location.id)
+  //   );
     
-    setBoard(prev => ({
-      ...prev,
-      locations: [...prev.locations, ...locationsToAdd],
-    }));
+  //   setBoard(prev => ({
+  //     ...prev,
+  //     locations: [...prev.locations, ...locationsToAdd],
+  //   }));
     
-    setSelectedLocationsToAdd([]);
-    setIsAddModalVisible(false);
-  };
+  //   setSelectedLocationsToAdd([]);
+  //   setIsAddModalVisible(false);
+  // };
 
   // Filter functionality update for multiple location tags
   const handleAddLocationTag = () => {
@@ -271,6 +283,66 @@ export function BoardScreen() {
     setTagFilter('');
   };
 
+  const handleAddLocationsToBoard = async () => {
+    if (!boardId || selectedLocationsToAdd.length === 0) return;
+  
+    const entries = selectedLocationsToAdd.map(locationId => ({
+      board_id: boardId,
+      location_id: locationId,
+    }));
+  
+    console.log('Saving locations to board:', entries); // 🔍 debug
+  
+    const { error } = await supabase.from('board_location').insert(entries);
+  
+    if (error) {
+      console.error('Error saving to board_location:', error);
+      showToast('Failed to save locations');
+    } else {
+      showToast('Locations added!');
+      setShowAddLocationModal(false);
+      setSelectedLocationsToAdd([]);
+      fetchBoardData(); // refresh the board’s list
+    }
+    await fetchBoardData();
+  };
+
+  const fetchBoardData = async () => {
+    try {
+      // Get boardId from route or state
+      const boardId = route.params?.boardId;
+  
+      // Fetch board info (like name, location count)
+      const { data: board, error: boardError } = await supabase
+        .from('boards')
+        .select('*')
+        .eq('id', boardId)
+        .single();
+  
+      // Fetch associated locations from the junction table
+      const { data: boardLocations, error: locationError } = await supabase
+        .from('board_location')
+        .select('location(*)') // Get location details via foreign key
+        .eq('board_id', boardId);
+  
+      if (boardError || locationError) {
+        console.error('Error fetching board data:', boardError || locationError);
+        return;
+      }
+  
+      setBoard({
+        ...board,
+        locations: boardLocations.map(item => ({
+          ...item.location,
+          editableTags: item.location?.tag || [],
+          note: item.location?.note || null,
+        })),
+      });      
+    } catch (err) {
+      console.error('Failed to fetch board data', err);
+    }
+  };  
+  
   const handleTagFilterKeyPress = (e: any) => {
     if (e.nativeEvent.key === 'Enter' && tagFilter.trim()) {
       handleAddTagFilterTag();
@@ -331,8 +403,17 @@ export function BoardScreen() {
     }
   };
 
-  const handleEditBoard = (data: { name: string; coverImage?: string }) => {
-    // API Integration point: Replace with API call to update board
+  const handleEditBoard = async (data: { name: string; coverImage?: string }) => {
+    const { error } = await supabase
+      .from('boards')
+      .update({ name: data.name, coverImage: data.coverImage })
+      .eq('id', boardId);
+  
+    if (error) {
+      console.error('❌ Error updating board:', error);
+      return;
+    }
+  
     setBoard(prev => ({
       ...prev,
       name: data.name,
@@ -340,16 +421,31 @@ export function BoardScreen() {
     }));
     setIsEditModalVisible(false);
   };
+  
 
-  const handleCreateBoard = (data: { name: string; coverImage?: string }) => {
-    const newBoard: RecentBoard = {
-      id: Date.now().toString(),
-      name: data.name,
-      locationCount: 0,
-    };
-    setRecentBoards(prev => [newBoard, ...prev]);
+  const handleCreateBoard = async (data: { name: string; coverImage?: string }) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+  
+    const { error, data: newBoard } = await supabase
+      .from('boards')
+      .insert([
+        {
+          name: data.name,
+          user: user?.id,
+          coverImage: data.coverImage || '#D1D5DB', // 🎨 fallback default color
+        },
+      ])
+      .select()
+      .single();
+  
+    if (error) {
+      console.error('Error creating board:', error);
+    } else {
+      setBoards(prev => [newBoard as Board, ...prev]);
+    }
     setIsNewBoardModalVisible(false);
-    // Here you would typically also select the new board and add locations to it
   };
 
   // Add these functions for the edit modal
@@ -367,29 +463,37 @@ export function BoardScreen() {
     setIsEditModalVisible(true);
   };
 
-  const handleSaveLocationEdit = () => {
+  const handleSaveLocationEdit = async () => {
     if (!currentLocation) return;
+  
+    const updatedTags = editedTags;
+    const updatedNote = editedNote.trim();
+  
+    const { error } = await supabase
+      .from('location')
+      .update({
+        tag: updatedTags,
+        note: updatedNote || null,
+      })
+      .eq('id', currentLocation.id);
+  
+    if (error) {
+      console.error('❌ Error saving location:', error);
+      return;
+    }
 
-    // Update the location in the board
-    const updatedLocations = board.locations.map(location => {
-      if (location.id === currentLocation.id) {
-        return {
-          ...location,
-          tags: editedTags,
-          notes: editedNote.trim() ? [editedNote.trim()] : [],
-        };
-      }
-      return location;
-    });
-
-    // Update the board with the new locations
-    setBoard({
-      ...board,
-      locations: updatedLocations,
-    });
-    
+    console.log("✅ Saved to Supabase");
+  
+    // Update local state too
+    const updatedLocations = board.locations.map(loc =>
+      loc.id === currentLocation.id
+        ? { ...loc, tag: updatedTags, note: [updatedNote] }
+        : loc
+    );
+  
+    setBoard({ ...board, locations: updatedLocations });
     setIsEditModalVisible(false);
-  };
+  };  
 
   const handleAddTag = () => {
     if (!tagInput.trim()) return;
@@ -475,16 +579,15 @@ export function BoardScreen() {
       {/* Cover Image */}
       <View style={styles.coverImageContainer}>
         {board.coverImage ? (
-          <Image 
+          <Image
             source={{ uri: board.coverImage }}
             style={styles.coverImage}
-            onError={() => {
-              // Handle image loading errors
-            }}
           />
         ) : (
-          <View style={styles.coverPlaceholder}>
-            <PlaceholderImage size={36} />
+          <View style={[styles.coverPlaceholder, { backgroundColor: '#D1D5DB' /* Default gray */ }]}>
+            <Text style={styles.coverPlaceholderEmoji}>
+              {board.emoji ?? board.name.charAt(0).toUpperCase()}
+            </Text>
           </View>
         )}
       </View>
@@ -607,7 +710,7 @@ export function BoardScreen() {
                   styles.addButton,
                   selectedLocationsToAdd.length === 0 && styles.addButtonDisabled
                 ]}
-                onPress={handleAddLocations}
+                onPress={handleAddLocationsToBoard}
                 disabled={selectedLocationsToAdd.length === 0}
               >
                 <Text style={styles.addButtonText}>
@@ -1176,6 +1279,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
   },
+  locationFilterTag: {
+    backgroundColor: '#DBEAFE', // Light blue, like used for location tags
+  },  
   checkbox: {
     width: 24,
     height: 24,
@@ -1610,10 +1716,16 @@ const styles = StyleSheet.create({
   },
   coverPlaceholder: {
     width: '100%',
-    height: '100%',
+    height: 150,
     backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 12,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  coverPlaceholderEmoji: {
+    fontSize: 48,
+    color: '#6B7280',
   },
 }); 
