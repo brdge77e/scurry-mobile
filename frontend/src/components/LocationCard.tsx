@@ -41,7 +41,9 @@ export function LocationCard({ location, onEdit, onPress }: LocationCardProps) {
         <Text style={styles.locationCategory}>{location.category}</Text>
         <Text style={styles.locationAddress}>{location.location}</Text>
         {location.notes && location.notes.length > 0 && (
-          <Text style={styles.locationDescription} numberOfLines={2}>{location.notes[0]}</Text>
+          <Text style={styles.locationDescription} numberOfLines={2}>
+            {location.notes[0]}
+          </Text>
         )}
         {location.tags && location.tags.length > 0 && (
           <View style={styles.tagsContainer}>

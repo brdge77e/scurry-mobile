@@ -484,16 +484,30 @@ export function BoardScreen() {
 
     console.log("✅ Saved to Supabase");
   
-    // Update local state too
+  // Re-fetch updated location from Supabase
+  const { data: updatedLocation, error: fetchError } = await supabase
+    .from('location')
+    .select('*')
+    .eq('id', currentLocation.id)
+    .single();
+
+  if (fetchError || !updatedLocation) {
+    console.error('❌ Failed to fetch updated location', fetchError);
+  } else {
+    // Replace the location in board.locations
     const updatedLocations = board.locations.map(loc =>
-      loc.id === currentLocation.id
-        ? { ...loc, tag: updatedTags, note: [updatedNote] }
-        : loc
+      loc.id === currentLocation.id ? updatedLocation : loc
     );
-  
-    setBoard({ ...board, locations: updatedLocations });
-    setIsEditModalVisible(false);
-  };  
+
+    setBoard({
+      ...board,
+      locations: updatedLocations.map(loc => ({
+        ...loc,
+        editableTags: loc.tag || [],
+        note: loc.note || null,
+      })),
+    });    
+  }
 
   const handleAddTag = () => {
     if (!tagInput.trim()) return;
@@ -1728,4 +1742,5 @@ const styles = StyleSheet.create({
     fontSize: 48,
     color: '#6B7280',
   },
-}); 
+});
+}

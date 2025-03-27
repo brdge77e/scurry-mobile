@@ -195,15 +195,23 @@ export function AllLocationsScreen() {
 
     console.log("✅ Saved to Supabase");
   
-    // Update local state too
-    const updatedLocations = locations.map(loc =>
-      loc.id === currentLocation.id
-        ? { ...loc, tags: updatedTags, notes: [updatedNote] }
-        : loc
+  // Re-fetch updated location from Supabase
+  const { data: updatedLocation, error: fetchError } = await supabase
+    .from('location')
+    .select('*')
+    .eq('id', currentLocation.id)
+    .single();
+
+  if (fetchError || !updatedLocation) {
+    console.error('❌ Failed to fetch updated location', fetchError);
+  } else {
+    // Replace the location in board.locations
+    const updatedLocations = board.locations.map(loc =>
+      loc.id === currentLocation.id ? updatedLocation : loc
     );
-    setIsEditModalVisible(false);
-  };
-  
+
+    setBoard({ ...board, locations: updatedLocations });
+  }
 
   const handleAddTag = () => {
     if (!tagInput.trim()) return;
@@ -868,4 +876,5 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
   },
-}); 
+});
+}

@@ -353,32 +353,8 @@ export function SelectedLocationsScreen() {
     setLocations(updatedLocations);
   };
 
-  const saveLocationsToSupabase = async () => {
-    const userId = (await supabase.auth.getUser()).data?.user?.id;
-  
-    const { error } = await supabase.from('location').insert(
-      locations.map(loc => ({
-        name: loc.name,
-        address: loc.location,
-        description: loc.category,
-        tag: loc.editableTags,
-        note: loc.note,
-        source_link: loc.sourceLink,
-        user_id: userId,
-      }))
-    );
-  
-    if (error) {
-      console.error('Error saving locations:', error);
-      showToast('Failed to save locations');
-    } else {
-      showToast('Locations saved to Supabase');
-    }
-  };  
-
-  const handleConfirm = async () => {
-    await saveLocationsToSupabase(); // Persist locations
-    setIsBoardModalVisible(true);    // Then continue with flow
+  const handleConfirm = () => {
+    setIsBoardModalVisible(true);
   };
 
   const handleAddToBoard = (boardId: string) => {
