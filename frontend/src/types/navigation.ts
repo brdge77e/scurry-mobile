@@ -18,6 +18,7 @@ export type RootStackParamList = {
     boardId: string;
   };
   AllBoards: undefined;
+  AllLocations: undefined;
   Board: {
     boardId: string;
   };

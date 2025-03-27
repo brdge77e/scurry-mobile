@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
-  Platform,
+  Alert,
 } from 'react-native';
 import { X, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -33,11 +33,19 @@ export function BoardEditModal({
   const [name, setName] = useState(initialData?.name || '');
   const [coverImage, setCoverImage] = useState(initialData?.coverImage);
 
+  // Update state when initialData changes or modal becomes visible
+  useEffect(() => {
+    if (visible) {
+      setName(initialData?.name || '');
+      setCoverImage(initialData?.coverImage);
+    }
+  }, [initialData, visible]);
+
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      alert('Sorry, we need camera roll permissions to make this work!');
+      Alert.alert('Permission Required', 'Sorry, we need camera roll permissions to make this work!');
       return;
     }
 
@@ -53,7 +61,7 @@ export function BoardEditModal({
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      alert('Failed to pick image. Please try again.');
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
 

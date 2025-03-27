@@ -112,8 +112,11 @@ export function LocationDetailsScreen() {
     const fetchLocationDetails = async () => {
       setLoading(true);
       try {
-        // In a real app, you would fetch the location from API or local storage
-        // Mock data for demonstration
+        // TODO: Replace mock data with actual API call
+        // const response = await api.getLocationById(locationId);
+        // setLocation(response.data);
+        
+        // Mock location data - TO BE REMOVED
         const mockLocation: Location = {
           id: locationId || '2',
           name: 'Times Square',
@@ -122,15 +125,19 @@ export function LocationDetailsScreen() {
           category: 'Landmark',
           isFavorite: false,
           tags: ['landmark', 'tourism', 'entertainment'],
-          notes: ['Famous commercial intersection and tourist destination'],
+          note: 'Famous commercial intersection and tourist destination',
         };
         
         setLocation(mockLocation);
         
-        // Mock API call to Google Places API
+        // TODO: Replace mock API call with actual Google Places API integration
+        // const placeResponse = await api.getGooglePlaceDetails(locationId);
+        // setPlaceDetails(placeResponse.data);
+        
+        // Mock API call to Google Places API - TO BE REMOVED
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock Google Places data
+        // Mock Google Places data - TO BE REMOVED
         const mockGoogleData: GooglePlaceDetails = {
           opening_hours: {
             weekday_text: [
@@ -214,6 +221,7 @@ export function LocationDetailsScreen() {
         setPlaceDetails(mockGoogleData);
       } catch (error) {
         console.error('Error fetching location details:', error);
+        // TODO: Add proper error handling and user feedback
       } finally {
         setLoading(false);
       }
@@ -393,14 +401,12 @@ export function LocationDetailsScreen() {
             )}
           </View>
 
-          {location.notes && location.notes.length > 0 && (
+          {location.note && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Notes</Text>
-              {location.notes.map((note, index) => (
-                <Text key={index} style={styles.note}>
-                  • {note}
-                </Text>
-              ))}
+              <Text style={styles.note}>
+                • {location.note}
+              </Text>
             </View>
           )}
 

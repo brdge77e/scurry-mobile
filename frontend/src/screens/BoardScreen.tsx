@@ -13,9 +13,12 @@ import {
   Share,
   Platform,
   KeyboardAvoidingView,
+  NativeSyntheticEvent,
+  TextInputKeyPressEventData,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { ArrowLeft, Filter, Share as ShareIcon, Plus, X, Edit2, Search, Check } from 'lucide-react-native';
+import { ArrowLeft, Filter, Share as ShareIcon, Plus, X, Edit2, Search, Check, Trash2 } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { Location } from '../types/index';
@@ -55,10 +58,29 @@ const PREDEFINED_TAGS = [
   'Photo Spot',
 ];
 
-// Add import for LocationWithEditableContent
-interface LocationWithEditableContent extends Location {
+// Update the interface to match the Location type
+interface LocationWithEditableContent extends Omit<Location, 'note'> {
   editableTags: string[];
   note: string | null;
+}
+
+interface BoardLocation {
+  location: {
+    id: string;
+    name: string;
+    description: string;
+    address: string;
+    country: string;
+    tag: string[];
+    note: string;
+  }[];
+}
+
+interface BoardData {
+  id: string;
+  name: string;
+  board_location: BoardLocation[];
+  coverImage?: string;
 }
 
 export function BoardScreen() {
@@ -94,49 +116,6 @@ export function BoardScreen() {
   //     console.error('Error updating board:', error);
   //   }
   // };
-
-  useEffect(() => {
-    const fetchBoardData = async () => {
-      const { data, error } = await supabase
-        .from('boards')
-        .select(`
-          id,
-          name,
-          board_location:board_location (
-            location:location (
-              id,
-              name,
-              description,
-              address,
-              country,
-              tag
-            )
-          )
-        `)
-        .eq('id', boardId)
-        .single();
-
-      if (error) {
-        console.error('❌ Error fetching board:', error);
-      } else {
-        setBoard({
-          id: data.id,
-          name: data.name,
-          locations: (data.board_location || [])
-            .map(entry => ({
-              ...entry.location,
-              tags: entry.location?.tag || [],
-              editableTags: entry.location?.tag || [],
-              note: entry.location?.note || null,
-            }))
-            .filter(loc => loc), // filter nulls
-          coverImage: data.coverImage || '',
-        });        
-      }
-    };
-  
-    fetchBoardData();
-  }, [boardId]);
 
   const [allLocations, setAllLocations] = useState<Location[]>([]);
 
@@ -208,31 +187,97 @@ export function BoardScreen() {
     coverImage: '',
   });
   
+  // Add a separate state variable for edit location modal
+  const [isEditLocationModalVisible, setIsEditLocationModalVisible] = useState(false);
+
+  const fetchBoardData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('boards')
+        .select(`
+          id,
+          name,
+          coverImage,
+          board_location:board_location (
+            location:location (
+              id,
+              name,
+              description,
+              address,
+              country,
+              tag,
+              note
+            )
+          )
+        `)
+        .eq('id', boardId)
+        .single();
+
+      if (error) {
+        console.error('❌ Error fetching board:', error);
+        return;
+      }
+
+      const boardData = data as unknown as BoardData;
+      setBoard({
+        id: boardData.id,
+        name: boardData.name,
+        locations: (boardData.board_location || [])
+          .map((entry: BoardLocation) => ({
+            id: entry.location[0].id,
+            name: entry.location[0].name,
+            location: entry.location[0].address,
+            category: 'default',
+            isFavorite: false,
+            tags: entry.location[0].tag || [],
+            editableTags: entry.location[0].tag || [],
+            note: entry.location[0].note || null,
+          }))
+          .filter((loc: Location | null): loc is Location => !!loc),
+        coverImage: boardData.coverImage || '',
+      });
+    } catch (err) {
+      console.error('Failed to fetch board data', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBoardData();
+  }, [boardId]);
+
   // Filter locations based on search query and active filters
-  const filteredLocations = board.locations.filter(location => {
-    const matchesSearch = location.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredLocations = board.locations?.filter(location => {
+    // Check if location exists
+    if (!location) return false;
+    
+    const matchesSearch = location.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
     
     // For location, consider it a match if any of the active filter locations are present
-    const matchesLocation = !activeFilters.location || 
-      (activeFilters.location.split(', ').some(filterLoc => 
+    const matchesLocation = !activeFilters.location || (
+      location.location && 
+      activeFilters.location.split(', ').some(filterLoc => 
         location.location.toLowerCase().includes(filterLoc.toLowerCase())
-      ));
+      )
+    );
     
+    // Safely handle undefined tags
+    const tags = location.tags || [];
     const matchesTags = activeFilters.tags.length === 0 || 
-      activeFilters.tags.every(tag => location.tags.includes(tag));
+      activeFilters.tags.every(tag => tags.includes(tag));
+    
     return matchesSearch && matchesLocation && matchesTags;
-  });
+  }) || [];
 
   // Filter locations for add modal
   const filteredAllLocations = allLocations.filter(location => 
     location.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    !board.locations.some(boardLocation => boardLocation.id === location.id)
+    !board.locations?.some(boardLocation => boardLocation.id === location.id)
   );
 
   const handleShare = async () => {
-    const locationsToShare = board.locations.filter(location => 
+    const locationsToShare = board.locations?.filter(location => 
       selectedLocationsToShare.includes(location.id)
-    );
+    ) || [];
 
     const shareText = locationsToShare
       .map(location => `${location.name}\n${location.location}`)
@@ -285,71 +330,67 @@ export function BoardScreen() {
 
   const handleAddLocationsToBoard = async () => {
     if (!boardId || selectedLocationsToAdd.length === 0) return;
-  
-    const entries = selectedLocationsToAdd.map(locationId => ({
-      board_id: boardId,
-      location_id: locationId,
-    }));
-  
-    console.log('Saving locations to board:', entries); // 🔍 debug
-  
-    const { error } = await supabase.from('board_location').insert(entries);
-  
-    if (error) {
-      console.error('Error saving to board_location:', error);
-      showToast('Failed to save locations');
-    } else {
-      showToast('Locations added!');
-      setShowAddLocationModal(false);
-      setSelectedLocationsToAdd([]);
-      fetchBoardData(); // refresh the board’s list
-    }
-    await fetchBoardData();
-  };
 
-  const fetchBoardData = async () => {
     try {
-      // Get boardId from route or state
-      const boardId = route.params?.boardId;
-  
-      // Fetch board info (like name, location count)
-      const { data: board, error: boardError } = await supabase
-        .from('boards')
-        .select('*')
-        .eq('id', boardId)
-        .single();
-  
-      // Fetch associated locations from the junction table
-      const { data: boardLocations, error: locationError } = await supabase
+      // First, get existing location IDs to avoid duplicates
+      const { data: existingData, error: fetchError } = await supabase
         .from('board_location')
-        .select('location(*)') // Get location details via foreign key
+        .select('location_id')
         .eq('board_id', boardId);
-  
-      if (boardError || locationError) {
-        console.error('Error fetching board data:', boardError || locationError);
+
+      if (fetchError) {
+        console.error('Error fetching existing locations:', fetchError);
+        showToast('Failed to check existing locations');
         return;
       }
-  
-      setBoard({
-        ...board,
-        locations: boardLocations.map(item => ({
-          ...item.location,
-          editableTags: item.location?.tag || [],
-          note: item.location?.note || null,
-        })),
-      });      
+
+      // Extract the location IDs that already exist in this board
+      const existingLocationIds = existingData?.map(item => item.location_id) || [];
+      
+      // Filter out locations that are already in the board
+      const newLocationIds = selectedLocationsToAdd.filter(
+        locationId => !existingLocationIds.includes(locationId)
+      );
+
+      if (newLocationIds.length === 0) {
+        showToast('All selected locations are already in this board');
+        setShowAddLocationModal(false);
+        setSelectedLocationsToAdd([]);
+        return;
+      }
+
+      // Create entries only for new locations
+      const entries = newLocationIds.map(locationId => ({
+        board_id: boardId,
+        location_id: locationId,
+      }));
+    
+      console.log('Saving new locations to board:', entries);
+    
+      const { error } = await supabase.from('board_location').insert(entries);
+    
+      if (error) {
+        console.error('Error saving to board_location:', error);
+        showToast('Failed to save locations');
+      } else {
+        showToast(`${newLocationIds.length} location(s) added!`);
+        setIsAddModalVisible(false);
+        setSelectedLocationsToAdd([]);
+        await fetchBoardData(); // refresh the board's list
+      }
     } catch (err) {
-      console.error('Failed to fetch board data', err);
+      console.error('Error in handleAddLocationsToBoard:', err);
+      showToast('An error occurred while adding locations');
     }
-  };  
-  
-  const handleTagFilterKeyPress = (e: any) => {
+  };
+
+  const handleTagFilterKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
     if (e.nativeEvent.key === 'Enter' && tagFilter.trim()) {
       handleAddTagFilterTag();
     }
   };
 
-  const handleLocationFilterKeyPress = (e: any) => {
+  const handleLocationFilterKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
     if (e.nativeEvent.key === 'Enter' && locationFilter.trim()) {
       handleAddLocationTag();
     }
@@ -404,22 +445,54 @@ export function BoardScreen() {
   };
 
   const handleEditBoard = async (data: { name: string; coverImage?: string }) => {
-    const { error } = await supabase
-      .from('boards')
-      .update({ name: data.name, coverImage: data.coverImage })
-      .eq('id', boardId);
-  
-    if (error) {
-      console.error('❌ Error updating board:', error);
-      return;
+    try {
+      console.log('Updating board with:', { name: data.name, coverImage: data.coverImage });
+      
+      // First check what columns exist in the database table
+      const { data: columnInfo, error: columnError } = await supabase
+        .from('boards')
+        .select('name', { count: 'exact', head: true });
+
+      if (columnError) {
+        console.error('❌ Error fetching board columns:', columnError);
+        showToast('Failed to update board');
+        return;
+      }
+
+      // Based on the successful query, we know the column exists
+      const updateData: Record<string, any> = {
+        name: data.name
+      };
+
+      // Only add coverImage if it's provided
+      if (data.coverImage !== undefined) {
+        updateData.coverImage = data.coverImage || null;
+      }
+
+      const { error } = await supabase
+        .from('boards')
+        .update(updateData)
+        .eq('id', boardId);
+    
+      if (error) {
+        console.error('❌ Error updating board:', error);
+        showToast('Failed to update board: ' + error.message);
+        return;
+      }
+    
+      // If we get here, the update was successful
+      setBoard(prev => ({
+        ...prev,
+        name: data.name,
+        coverImage: data.coverImage || prev.coverImage || '',
+      }));
+      
+      showToast('Board updated successfully');
+      setIsEditModalVisible(false);
+    } catch (err) {
+      console.error('Failed to update board:', err);
+      showToast('Failed to update board');
     }
-  
-    setBoard(prev => ({
-      ...prev,
-      name: data.name,
-      coverImage: data.coverImage,
-    }));
-    setIsEditModalVisible(false);
   };
   
 
@@ -448,19 +521,19 @@ export function BoardScreen() {
     setIsNewBoardModalVisible(false);
   };
 
-  // Add these functions for the edit modal
+  // Update the handleOpenEditModal function to use the new state variable
   const handleOpenEditModal = (location: Location) => {
     // Convert Location to LocationWithEditableContent
     const editableLocation: LocationWithEditableContent = {
       ...location,
       editableTags: location.tags || [],
-      note: location.notes && location.notes.length > 0 ? location.notes[0] : null,
+      note: location.note || null,
     };
     
     setCurrentLocation(editableLocation);
-    setEditedTags(editableLocation.editableTags);
-    setEditedNote(editableLocation.note || '');
-    setIsEditModalVisible(true);
+    setEditedTags(location.tags || []);
+    setEditedNote(location.note || '');
+    setIsEditLocationModalVisible(true);
   };
 
   const handleSaveLocationEdit = async () => {
@@ -493,15 +566,15 @@ export function BoardScreen() {
     if (fetchError || !updatedLocation) {
       console.error('❌ Failed to fetch updated location', fetchError);
     } else {
-      const updated = locations.map(loc =>
+      const updated = allLocations.map(loc =>
         loc.id === currentLocation.id ? {
           ...loc,
           editableTags: updatedLocation.tag || [],
           note: updatedLocation.note || null,
         } : loc
       );
-      setLocations(updated);
-      setIsEditModalVisible(false);
+      setAllLocations(updated);
+      setIsEditLocationModalVisible(false);
     }
   };  
 
@@ -569,6 +642,30 @@ export function BoardScreen() {
       tags: prev.tags.filter(tag => tag !== filter),
       location: filter === prev.location ? '' : prev.location,
     }));
+  };
+
+  const handleUpdateNote = async (locationId: string, note: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .update({ note })
+        .eq('id', locationId);
+
+      if (error) throw error;
+
+      // Update the locations in state
+      setBoard(prev => ({
+        ...prev,
+        locations: prev.locations.map(loc => 
+          loc.id === locationId ? { ...loc, note } : loc
+        ),
+      }));
+
+      showToast('Note updated successfully');
+    } catch (error) {
+      console.error('Error updating note:', error);
+      showToast('Failed to update note');
+    }
   };
 
   return (
@@ -933,7 +1030,7 @@ export function BoardScreen() {
         onClose={() => setIsEditModalVisible(false)}
         onSave={handleEditBoard}
         initialData={{
-          name: board.name,
+          name: board.name || '',
           coverImage: board.coverImage,
         }}
         mode="edit"
@@ -1050,9 +1147,8 @@ export function BoardScreen() {
         mode="create"
       />
 
-      {/* Add the Edit Location Modal */}
       <Modal
-        visible={isEditModalVisible}
+        visible={isEditLocationModalVisible}
         animationType="fade"
         transparent={true}
       >
@@ -1063,86 +1159,91 @@ export function BoardScreen() {
           <TouchableOpacity 
             style={styles.editModalOverlay}
             activeOpacity={1}
-            onPress={() => setIsEditModalVisible(false)}
+            onPress={() => setIsEditLocationModalVisible(false)}
           >
-            <View style={styles.editModalContainer}>
-              <ScrollView contentContainerStyle={styles.editModalContent}>
-                <View style={styles.editModalHeader}>
-                  <Text style={styles.editModalTitle}>{currentLocation?.name}</Text>
-                  <Text style={styles.editModalSubtitle}>{currentLocation?.category}</Text>
-                  <Text style={styles.editModalLocation}>{currentLocation?.location}</Text>
-                  <TouchableOpacity 
-                    style={styles.closeButton}
-                    onPress={() => setIsEditModalVisible(false)}
-                  >
-                    <X size={20} color="#6B7280" />
-                  </TouchableOpacity>
-                </View>
+            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+              <View style={styles.editModalContainer}>
+                <ScrollView 
+                  contentContainerStyle={styles.editModalContent}
+                  showsVerticalScrollIndicator={true}
+                >
+                  <View style={styles.editModalHeader}>
+                    <Text style={styles.editModalTitle}>{currentLocation?.name}</Text>
+                    <Text style={styles.editModalSubtitle}>{currentLocation?.category}</Text>
+                    <Text style={styles.editModalLocation}>{currentLocation?.location}</Text>
+                    <TouchableOpacity 
+                      style={styles.closeButton}
+                      onPress={() => setIsEditLocationModalVisible(false)}
+                    >
+                      <X size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
 
-                <View style={styles.editSection}>
-                  <Text style={styles.editSectionTitle}>Tags</Text>
-                  <View style={styles.tagInputContainer}>
-                    {editedTags.map((tag, index) => (
-                      <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
-                        <Text style={styles.selectedTagText}>{tag}</Text>
-                        <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
-                          <X size={14} color="#6A62B7" />
-                        </TouchableOpacity>
+                  <View style={styles.editSection}>
+                    <Text style={styles.editSectionTitle}>Tags</Text>
+                    <View style={styles.tagInputContainer}>
+                      {editedTags.map((tag, index) => (
+                        <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
+                          <Text style={styles.selectedTagText}>{tag}</Text>
+                          <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
+                            <X size={14} color="#6A62B7" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                      <TextInput
+                        style={[
+                          styles.tagInputWithTags,
+                          editedTags.length > 0 ? {} : { minWidth: '100%' }
+                        ]}
+                        placeholder={editedTags.length > 0 ? "" : "+ Add tag"}
+                        value={tagInput}
+                        onChangeText={setTagInput}
+                        onFocus={() => setShowTagSuggestions(true)}
+                        onSubmitEditing={handleAddTag}
+                      />
+                    </View>
+                    
+                    {showTagSuggestions && (
+                      <View style={styles.tagsSection}>
+                        <View style={styles.tagsGrid}>
+                          {PREDEFINED_TAGS.map((tag, index) => (
+                            <TouchableOpacity
+                              key={index}
+                              style={[
+                                styles.tagItem,
+                                { backgroundColor: getTagColor(tag) },
+                                editedTags.includes(tag) && styles.selectedPredefinedTag
+                              ]}
+                              onPress={() => handleSelectPredefinedTag(tag)}
+                            >
+                              <Text style={styles.tagText}>{tag}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
                       </View>
-                    ))}
+                    )}
+                  </View>
+
+                  <View style={styles.editSection}>
+                    <Text style={styles.editSectionTitle}>Note</Text>
                     <TextInput
-                      style={[
-                        styles.tagInputWithTags,
-                        editedTags.length > 0 ? {} : { minWidth: '100%' }
-                      ]}
-                      placeholder={editedTags.length > 0 ? "" : "+ Add tag"}
-                      value={tagInput}
-                      onChangeText={setTagInput}
-                      onFocus={() => setShowTagSuggestions(true)}
-                      onSubmitEditing={handleAddTag}
+                      style={styles.noteInput}
+                      placeholder="Add a note..."
+                      value={editedNote}
+                      onChangeText={setEditedNote}
+                      multiline
                     />
                   </View>
-                  
-                  {showTagSuggestions && (
-                    <View style={styles.tagsSection}>
-                      <View style={styles.tagsGrid}>
-                        {PREDEFINED_TAGS.map((tag, index) => (
-                          <TouchableOpacity
-                            key={index}
-                            style={[
-                              styles.tagItem,
-                              { backgroundColor: getTagColor(tag) },
-                              editedTags.includes(tag) && styles.selectedPredefinedTag
-                            ]}
-                            onPress={() => handleSelectPredefinedTag(tag)}
-                          >
-                            <Text style={styles.tagText}>{tag}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-                  )}
-                </View>
 
-                <View style={styles.editSection}>
-                  <Text style={styles.editSectionTitle}>Note</Text>
-                  <TextInput
-                    style={styles.noteInput}
-                    placeholder="Add a note..."
-                    value={editedNote}
-                    onChangeText={setEditedNote}
-                    multiline
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.saveButton}
-                  onPress={handleSaveLocationEdit}
-                >
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={handleSaveLocationEdit}
+                  >
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+            </TouchableWithoutFeedback>
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>

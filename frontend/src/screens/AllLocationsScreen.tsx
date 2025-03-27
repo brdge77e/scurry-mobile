@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Filter, Search, Plus, X, Edit2, ArrowLeft } from 'lucide-react-native';
@@ -66,6 +67,7 @@ export function AllLocationsScreen() {
         }));
         setLocations(formatted);
       }
+      setLoading(false);
     };
   
     fetchLocations();
@@ -174,9 +176,16 @@ export function AllLocationsScreen() {
     setTagFilterTags([]);
   };
 
-  const handleOpenEditModal = (location: LocationWithEditableContent) => {
-    setCurrentLocation(location);
-    setEditedTags([...location.editableTags]);
+  const handleOpenEditModal = (location: Location) => {
+    // Make sure we're working with a proper LocationWithEditableContent
+    const editableLocation: LocationWithEditableContent = {
+      ...location,
+      editableTags: location.tags || [], // Use tags from location if editableTags doesn't exist
+      note: location.note || null,
+    };
+    
+    setCurrentLocation(editableLocation);
+    setEditedTags(location.tags || []); // Use tags instead of editableTags
     setEditedNote(location.note || '');
     setIsEditModalVisible(true);
   };
@@ -186,6 +195,8 @@ export function AllLocationsScreen() {
   
     const updatedTags = editedTags;
     const updatedNote = editedNote.trim();
+  
+    console.log('Saving location with tags:', updatedTags);
   
     const { error } = await supabase
       .from('location')
@@ -211,9 +222,11 @@ export function AllLocationsScreen() {
     if (fetchError || !updatedLocation) {
       console.error('❌ Failed to fetch updated location', fetchError);
     } else {
+      // Update both the tag array and the tags property
       const updated = locations.map(loc =>
         loc.id === currentLocation.id ? {
           ...loc,
+          tags: updatedLocation.tag || [],
           editableTags: updatedLocation.tag || [],
           note: updatedLocation.note || null,
         } : loc
@@ -442,89 +455,94 @@ export function AllLocationsScreen() {
             activeOpacity={1}
             onPress={() => setIsEditModalVisible(false)}
           >
-            <View style={styles.editModalContainer}>
-              <ScrollView contentContainerStyle={styles.editModalContent}>
-                <View style={styles.editModalHeader}>
-                  <Text style={styles.editModalTitle}>{currentLocation?.name}</Text>
-                  <Text style={styles.editModalSubtitle}>{currentLocation?.category}</Text>
-                  <Text style={styles.editModalLocation}>{currentLocation?.location}</Text>
-                  <TouchableOpacity 
-                    style={styles.closeButton}
-                    onPress={() => setIsEditModalVisible(false)}
-                  >
-                    <X size={20} color="#6B7280" />
-                  </TouchableOpacity>
-                </View>
+            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+              <View style={styles.editModalContainer}>
+                <ScrollView 
+                  contentContainerStyle={styles.editModalContent}
+                  showsVerticalScrollIndicator={true}
+                >
+                  <View style={styles.editModalHeader}>
+                    <Text style={styles.editModalTitle}>{currentLocation?.name}</Text>
+                    <Text style={styles.editModalSubtitle}>{currentLocation?.category}</Text>
+                    <Text style={styles.editModalLocation}>{currentLocation?.location}</Text>
+                    <TouchableOpacity 
+                      style={styles.closeButton}
+                      onPress={() => setIsEditModalVisible(false)}
+                    >
+                      <X size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
 
-                <View style={styles.editSection}>
-                  <Text style={styles.editSectionTitle}>Tags</Text>
-                  <View style={styles.tagInputContainer}>
-                    {editedTags.map((tag, index) => (
-                      <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
-                        <Text style={styles.selectedTagText}>{tag}</Text>
-                        <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
-                          <X size={14} color="#6A62B7" />
-                        </TouchableOpacity>
+                  <View style={styles.editSection}>
+                    <Text style={styles.editSectionTitle}>Tags</Text>
+                    <View style={styles.tagInputContainer}>
+                      {editedTags.map((tag, index) => (
+                        <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
+                          <Text style={styles.selectedTagText}>{tag}</Text>
+                          <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
+                            <X size={14} color="#6A62B7" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                      <TextInput
+                        style={[
+                          styles.tagInputWithTags,
+                          editedTags.length > 0 ? {} : { minWidth: '100%' }
+                        ]}
+                        placeholder={editedTags.length > 0 ? "" : "+ Add tag"}
+                        value={tagInput}
+                        onChangeText={setTagInput}
+                        onFocus={() => setShowTagSuggestions(true)}
+                        onSubmitEditing={handleAddTag}
+                      />
+                    </View>
+                    
+                    {showTagSuggestions && (
+                      <View style={styles.tagsSection}>
+                        <View style={styles.tagsGrid}>
+                          {PREDEFINED_TAGS.map((tag, index) => (
+                            <TouchableOpacity
+                              key={index}
+                              style={[
+                                styles.tagItem,
+                                { backgroundColor: getTagColor(tag) },
+                                editedTags.includes(tag) && styles.selectedPredefinedTag
+                              ]}
+                              onPress={() => handleSelectPredefinedTag(tag)}
+                            >
+                              <Text style={styles.tagText}>{tag}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
                       </View>
-                    ))}
+                    )}
+                  </View>
+
+                  <View style={styles.editSection}>
+                    <Text style={styles.editSectionTitle}>Note</Text>
                     <TextInput
-                      style={[
-                        styles.tagInputWithTags,
-                        editedTags.length > 0 ? {} : { minWidth: '100%' }
-                      ]}
-                      placeholder={editedTags.length > 0 ? "" : "+ Add tag"}
-                      value={tagInput}
-                      onChangeText={setTagInput}
-                      onFocus={() => setShowTagSuggestions(true)}
-                      onSubmitEditing={handleAddTag}
+                      style={styles.noteInput}
+                      placeholder="Add a note..."
+                      value={editedNote}
+                      onChangeText={setEditedNote}
+                      multiline
                     />
                   </View>
-                  
-                  {showTagSuggestions && (
-                    <View style={styles.tagsSection}>
-                      <View style={styles.tagsGrid}>
-                        {PREDEFINED_TAGS.map((tag, index) => (
-                          <TouchableOpacity
-                            key={index}
-                            style={[
-                              styles.tagItem,
-                              { backgroundColor: getTagColor(tag) },
-                              editedTags.includes(tag) && styles.selectedPredefinedTag
-                            ]}
-                            onPress={() => handleSelectPredefinedTag(tag)}
-                          >
-                            <Text style={styles.tagText}>{tag}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-                  )}
-                </View>
 
-                <View style={styles.editSection}>
-                  <Text style={styles.editSectionTitle}>Note</Text>
-                  <TextInput
-                    style={styles.noteInput}
-                    placeholder="Add a note..."
-                    value={editedNote}
-                    onChangeText={setEditedNote}
-                    multiline
-                  />
-                </View>
+                  <View style={styles.editSection}>
+                    <Text style={styles.editSectionTitle}>Source Link</Text>
+                    <Text style={styles.sourceLink}>{currentLocation?.sourceLink}</Text>
+                  </View>
 
-                <View style={styles.editSection}>
-                  <Text style={styles.editSectionTitle}>Source Link</Text>
-                  <Text style={styles.sourceLink}>{currentLocation?.sourceLink}</Text>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.saveButton}
-                  onPress={handleSaveLocationEdit}
-                >
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={handleSaveLocationEdit}
+                  >
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+            </TouchableWithoutFeedback>
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>

@@ -15,6 +15,24 @@ interface LocationCardProps {
   onPress?: () => void;
 }
 
+// Helper function to get tag color based on tag name
+function getTagColor(tag: string): string {
+  const colors = {
+    'Food': '#FFD700',
+    'Nature': '#90EE90',
+    'Culture': '#DEB887',
+    'Entertainment': '#ADD8E6',
+    'Shopping': '#FFC0CB',
+    'Accomodation': '#F5DEB3',
+    'Landmark': '#D8BFD8',
+    'Services': '#8FBC8F',
+    'Nightlife': '#6A5ACD',
+    'Photo Spot': '#F4A460',
+  };
+
+  return colors[tag as keyof typeof colors] || '#E5E1FF';
+}
+
 export function LocationCard({ location, onEdit, onPress }: LocationCardProps) {
   return (
     <TouchableOpacity
@@ -40,15 +58,15 @@ export function LocationCard({ location, onEdit, onPress }: LocationCardProps) {
         <Text style={styles.locationName}>{location.name}</Text>
         <Text style={styles.locationCategory}>{location.category}</Text>
         <Text style={styles.locationAddress}>{location.location}</Text>
-        {location.notes && location.notes.length > 0 && (
+        {location.note && (
           <Text style={styles.locationDescription} numberOfLines={2}>
-            {location.notes[0]}
+            {location.note}
           </Text>
         )}
         {location.tags && location.tags.length > 0 && (
           <View style={styles.tagsContainer}>
             {location.tags.slice(0, 3).map((tag, index) => (
-              <View key={index} style={styles.tagItem}>
+              <View key={index} style={[styles.tagItem, { backgroundColor: getTagColor(tag) }]}>
                 <Text style={styles.tagText}>{tag}</Text>
               </View>
             ))}
@@ -130,7 +148,7 @@ const styles = StyleSheet.create({
   locationDescription: {
     fontSize: 14,
     color: '#6B7280',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -138,7 +156,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tagItem: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#E5E1FF',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -147,7 +165,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 12,
-    color: '#3B82F6',
+    color: '#6A62B7',
   },
   moreTagsText: {
     fontSize: 12,

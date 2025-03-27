@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,13 +17,14 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ArrowLeft, Plus, X, Edit2, Trash2, Check } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
+import { RootStackParamList, MainTabParamList } from '../types/navigation';
 import { useToast } from '../hooks/useToast';
 import { Location } from '../types/index';
 import { BoardEditModal } from '../components/BoardEditModal';
 import supabase from '../utils/supabaseClient';
 
-type SelectedLocationsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SelectedLocations'>;
+type SelectedLocationsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SelectedLocations'> & 
+  NativeStackNavigationProp<MainTabParamList>;
 
 // Predefined tags that will show in the dropdown
 const PREDEFINED_TAGS = [
@@ -492,10 +493,10 @@ export function SelectedLocationsScreen() {
 
       <View style={styles.bottomContainer}>
         <TouchableOpacity
-          style={styles.confirmButton}
+          style={styles.primaryButton}
           onPress={handleConfirm}
         >
-          <Text style={styles.confirmButtonText}>Confirm</Text>
+          <Text style={styles.primaryButtonText}>Confirm</Text>
         </TouchableOpacity>
       </View>
 
@@ -612,9 +613,8 @@ export function SelectedLocationsScreen() {
             )}
 
             <TouchableOpacity
-              style={[styles.addTagButton, tagsToAdd.length === 0 && styles.disabledButton]}
+              style={styles.addTagButton}
               onPress={handleSaveTags}
-              disabled={tagsToAdd.length === 0}
             >
               <Text style={styles.addTagButtonText}>Add</Text>
             </TouchableOpacity>
@@ -658,11 +658,11 @@ export function SelectedLocationsScreen() {
             />
 
             <TouchableOpacity
-              style={styles.addButton}
+              style={styles.addTagButton}
               onPress={handleSaveNote}
               disabled={!noteInput.trim()}
             >
-              <Text style={styles.addButtonText}>Add</Text>
+              <Text style={styles.addTagButtonText}>Add</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -784,7 +784,7 @@ export function SelectedLocationsScreen() {
               
               {selectedBoard && (
                 <TouchableOpacity
-                  style={styles.confirmButton}
+                  style={styles.primaryButton}
                   onPress={() => {
                     handleAddToBoard(selectedBoard);
                     setIsBoardModalVisible(false);
@@ -792,7 +792,7 @@ export function SelectedLocationsScreen() {
                     showToast('Location added to board!');
                   }}
                 >
-                  <Text style={styles.confirmButtonText}>Confirm</Text>
+                  <Text style={styles.primaryButtonText}>Confirm</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -934,26 +934,18 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
     alignItems: 'center',
   },
-  confirmButton: {
+  primaryButton: {
     backgroundColor: '#6A62B7',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 32,
-    width: 150,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    width: '100%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  confirmButtonText: {
-    color: '#FFFFFF',
+  primaryButtonText: {
+    color: 'white',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   // Modal styles
   modalContainer: {
@@ -1033,17 +1025,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   addTagButton: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 20,
-    width: 100,
+    backgroundColor: '#6A62B7',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    width: '100%',
   },
   addTagButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '500',
-    color: '#6A62B7',
-    textAlign: 'center',
   },
   noteContainer: {
     backgroundColor: '#F3F4F6',
@@ -1202,19 +1194,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 16,
     fontWeight: '500',
-  },
-  confirmButton: {
-    backgroundColor: '#6A62B7',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    width: '100%',    // Make button take full width
-    alignItems: 'center',
-  },
-  confirmButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
   currentTagsContainer: {
     marginBottom: 12,

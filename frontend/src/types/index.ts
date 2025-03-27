@@ -16,7 +16,7 @@ export interface Location {
   category: string;
   isFavorite: boolean;
   tags?: string[];
-  notes?: string[];
+  note: string | null;
   sourceLink?: string;
 }
 
