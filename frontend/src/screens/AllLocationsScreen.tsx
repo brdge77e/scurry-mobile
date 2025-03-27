@@ -59,7 +59,12 @@ export function AllLocationsScreen() {
       if (error) {
         console.error('Error fetching locations:', error);
       } else {
-        setLocations(data);
+        const formatted = data.map(loc => ({
+          ...loc,
+          editableTags: loc.tag || [],
+          note: loc.note || null,
+        }));
+        setLocations(formatted);
       }
     };
   
@@ -96,8 +101,8 @@ export function AllLocationsScreen() {
         location.location.toLowerCase().includes(filterLoc.toLowerCase())
       ));
     
-    const matchesTags = activeFilters.tags.length === 0 || 
-      activeFilters.tags.every(tag => location.editableTags.includes(tag));
+      const matchesTags = activeFilters.tags.length === 0 || 
+      activeFilters.tags.every(tag => (location.editableTags || []).includes(tag));    
     return matchesSearch && matchesLocation && matchesTags;
   });
 
