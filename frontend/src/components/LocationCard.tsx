@@ -26,7 +26,7 @@ function getTagColor(tag: string): string {
     'Accomodation': '#F5DEB3',
     'Landmark': '#D8BFD8',
     'Services': '#8FBC8F',
-    'Nightlife': '#6A5ACD',
+    'Nightlife': '#A495FD',
     'Photo Spot': '#F4A460',
   };
 

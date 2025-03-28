@@ -260,27 +260,22 @@ export function BoardScreen() {
   }, [boardId]);
 
   // Filter locations based on search query and active filters
-  const filteredLocations = board.locations?.filter(location => {
-    // Check if location exists
-    if (!location) return false;
-    
-    const matchesSearch = location.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
-    
-    // For location, consider it a match if any of the active filter locations are present
-    const matchesLocation = !activeFilters.location || (
-      location.location && 
+  const filteredLocations = locations.filter(location => {
+    const name = location.name ?? '';
+    const locStr = location.location ?? '';
+    const tags = location.editableTags ?? [];
+  
+    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
+    const country = location.country ?? '';
+    const matchesLocation = !activeFilters.location || 
       activeFilters.location.split(', ').some(filterLoc => 
-        location.location.toLowerCase().includes(filterLoc.toLowerCase())
-      )
-    );
-    
-    // Safely handle undefined tags
-    const tags = location.tags || [];
+        country.toLowerCase().includes(filterLoc.toLowerCase())
+      );
     const matchesTags = activeFilters.tags.length === 0 || 
       activeFilters.tags.every(tag => tags.includes(tag));
-    
+  
     return matchesSearch && matchesLocation && matchesTags;
-  }) || [];
+  });
 
   // Filter locations for add modal
   const filteredAllLocations = allLocations.filter(location => 
@@ -974,7 +969,7 @@ export function BoardScreen() {
                     styles.filterInput,
                     locationFilterTags.length > 0 ? styles.tagInputWithTags : {}
                   ]}
-                  placeholder={locationFilterTags.length > 0 ? "" : "Enter location"}
+                  placeholder={locationFilterTags.length > 0 ? "" : "Enter country"}
                   value={locationFilter}
                   onChangeText={setLocationFilter}
                   onSubmitEditing={handleAddLocationTag}
@@ -1280,7 +1275,7 @@ function getTagColor(tag: string): string {
     'Accomodation': '#F5DEB3',
     'Landmark': '#D8BFD8',
     'Services': '#8FBC8F',
-    'Nightlife': '#6A5ACD',
+    'Nightlife': '#A495FD',
     'Photo Spot': '#F4A460',
   };
 

@@ -101,9 +101,10 @@ export function AllLocationsScreen() {
     const tags = location.editableTags ?? [];
   
     const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
+    const country = location.country ?? '';
     const matchesLocation = !activeFilters.location || 
       activeFilters.location.split(', ').some(filterLoc => 
-        locStr.toLowerCase().includes(filterLoc.toLowerCase())
+        country.toLowerCase().includes(filterLoc.toLowerCase())
       );
     const matchesTags = activeFilters.tags.length === 0 || 
       activeFilters.tags.every(tag => tags.includes(tag));
@@ -372,7 +373,7 @@ export function AllLocationsScreen() {
                     styles.filterInput,
                     locationFilterTags.length > 0 ? styles.tagInputWithTags : {}
                   ]}
-                  placeholder={locationFilterTags.length > 0 ? "" : "Enter location"}
+                  placeholder={locationFilterTags.length > 0 ? "" : "Enter country"}
                   value={locationFilter}
                   onChangeText={setLocationFilter}
                   onSubmitEditing={handleAddLocationTag}
@@ -562,7 +563,7 @@ function getTagColor(tag: string): string {
     'Accomodation': '#F5DEB3',
     'Landmark': '#D8BFD8',
     'Services': '#8FBC8F',
-    'Nightlife': '#6A5ACD',
+    'Nightlife': '#A495FD',
     'Photo Spot': '#F4A460',
   };
 
