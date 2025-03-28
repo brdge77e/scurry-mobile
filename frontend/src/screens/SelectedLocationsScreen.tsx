@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
   tagItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E5E1FF',
+    backgroundColor: '#000000',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -902,7 +902,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 14,
-    color: '#1F2937',
+    color: '#000000',
     marginRight: 4,
   },
   removeTagButton: {
@@ -935,7 +935,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: '#6A62B7',
+    backgroundColor: '#000000',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -1021,7 +1021,7 @@ const styles = StyleSheet.create({
   },
   tagSuggestionText: {
     fontSize: 14,
-    color: '#1F2937',
+    color: '#000000',
     fontWeight: '500',
   },
   addTagButton: {
@@ -1201,7 +1201,7 @@ const styles = StyleSheet.create({
   currentTagsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4B5563',
+    color: '#000000',
     marginBottom: 8,
   },
   currentTagsList: {

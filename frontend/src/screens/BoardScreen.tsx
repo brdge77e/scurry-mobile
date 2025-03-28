@@ -89,7 +89,11 @@ export function BoardScreen() {
   const { boardId } = route.params as { boardId: string };
   const { showToast } = useToast();
   const [showAddLocationModal, setShowAddLocationModal] = useState(false);
-
+  
+  if (!boardId) {
+    console.warn("🚨 No boardId found in route params");
+    return null; // or navigate away / show fallback
+  }
   // API Integration Comment:
   // When implementing the backend integration, replace the mock data and functions with:
   // 1. Fetch the board data using the boardId from route params
@@ -117,7 +121,7 @@ export function BoardScreen() {
   //   }
   // };
 
-  const [allLocations, setAllLocations] = useState<Location[]>([]);
+  const [allLocations, setAllLocations] = useState<LocationWithEditableContent[]>([]);
 
   // State for modals
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -141,19 +145,21 @@ export function BoardScreen() {
 
   useEffect(() => {
     const fetchAllLocations = async () => {
-      const { data, error } = await supabase
-        .from('location')
-        .select('*');
-  
+      const { data, error } = await supabase.from('location').select('*');
       if (error) {
         console.error('Error fetching all locations:', error);
       } else {
-        setAllLocations(data);
+        const formatted = data.map(loc => ({
+          ...loc,
+          editableTags: loc.tag || [],
+          note: loc.note || null,
+        }));
+        setAllLocations(formatted);
       }
     };
   
     fetchAllLocations();
-  }, []);
+  }, []);  
   
   // State for location selection
   const [selectedLocationsToAdd, setSelectedLocationsToAdd] = useState<string[]>([]);
@@ -218,22 +224,30 @@ export function BoardScreen() {
         return;
       }
 
+      if (!boardId) return;
+      console.log("📦 Raw board data from Supabase:", data);
+
       const boardData = data as unknown as BoardData;
       setBoard({
         id: boardData.id,
         name: boardData.name,
         locations: (boardData.board_location || [])
-          .map((entry: BoardLocation) => ({
-            id: entry.location[0].id,
-            name: entry.location[0].name,
-            location: entry.location[0].address,
-            category: 'default',
-            isFavorite: false,
-            tags: entry.location[0].tag || [],
-            editableTags: entry.location[0].tag || [],
-            note: entry.location[0].note || null,
-          }))
-          .filter((loc: Location | null): loc is Location => !!loc),
+          .map((entry: BoardLocation) => {
+            const loc = entry.location;
+            if (!loc) return null;
+
+            return {
+              id: loc.id,
+              name: loc.name,
+              location: loc.address,
+              category: 'default',
+              isFavorite: false,
+              tags: loc.tag || [],
+              editableTags: loc.tag || [],
+              note: loc.note || null,
+            };
+          })
+          .filter((loc): loc is Location => !!loc),
         coverImage: boardData.coverImage || '',
       });
     } catch (err) {
@@ -566,13 +580,17 @@ export function BoardScreen() {
     if (fetchError || !updatedLocation) {
       console.error('❌ Failed to fetch updated location', fetchError);
     } else {
-      const updated = allLocations.map(loc =>
-        loc.id === currentLocation.id ? {
-          ...loc,
-          editableTags: updatedLocation.tag || [],
-          note: updatedLocation.note || null,
-        } : loc
-      );
+      const updated = allLocations.map(loc => {
+        if (loc.id === currentLocation.id) {
+          return {
+            ...loc,
+            tags: updatedLocation.tag || [],
+            editableTags: updatedLocation.tag || [],
+            note: updatedLocation.note || null,
+          };
+        }
+        return loc;
+      });      
       setAllLocations(updated);
       setIsEditLocationModalVisible(false);
     }

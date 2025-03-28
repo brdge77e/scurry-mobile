@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -33,8 +34,14 @@ export function AllBoardsScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchBoards();
+    fetchBoards(); // initial load
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchBoards(); // refresh if navigating back
+    }, [])
+  );  
 
   const fetchBoards = async () => {
     setLoading(true);

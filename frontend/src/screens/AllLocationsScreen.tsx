@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 14,
-    color: '#2D2B3F',
+    color: '#000000',
   },
   filterModalContainer: {
     flex: 1,
@@ -883,7 +883,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   selectedTagText: {
-    color: '#6A62B7',
+    color: '#000000',
     fontSize: 14,
     marginRight: 5,
   },

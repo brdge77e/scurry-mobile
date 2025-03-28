@@ -165,11 +165,11 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 12,
-    color: '#6A62B7',
+    color: '#000000',
   },
   moreTagsText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#000000',
     marginLeft: 4,
     alignSelf: 'center',
   },
