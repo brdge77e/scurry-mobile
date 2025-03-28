@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 14,
-    color: '#6A62B7',
+    color: '#000000',
   },
   reviewItem: {
     backgroundColor: '#FFFFFF',

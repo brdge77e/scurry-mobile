@@ -86,13 +86,13 @@ export default function BoardsPage() {
           <Text className="text-[#6A62B7] text-sm font-medium">
             {item.locationCount} locations
           </Text>
-        </View>
+        {/* </View>
         {item.category && (
           <View className="bg-gray-100 px-3 py-1 rounded-full ml-2">
             <Text className="text-gray-600 text-sm">{item.category}</Text>
           </View>
         )}
-      </View>
+      </View> */}
 
       {item.tags.length > 0 && (
         <View className="flex-row flex-wrap mt-2">

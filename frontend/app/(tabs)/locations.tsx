@@ -87,10 +87,10 @@ export default function LocationsPage() {
           </View>
         </View>
         <Text className="text-gray-500 text-sm mt-1">{item.description}</Text>
-        {item.category && (
+        {(
           <View className="mt-2 flex-row flex-wrap">
             <View className="bg-[#E5E1FF] px-2 py-1 rounded-full mr-2">
-              <Text className="text-[#6A62B7] text-xs">{item.category}</Text>
+              {/* <Text className="text-[#6A62B7] text-xs">{item.category}</Text> */}
             </View>
             {item.tags.map((tag, index) => (
               <View key={index} className="bg-gray-100 px-2 py-1 rounded-full mr-2">

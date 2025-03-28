@@ -56,7 +56,7 @@ export function LocationCard({ location, onEdit, onPress }: LocationCardProps) {
       </View>
       <View style={styles.locationInfo}>
         <Text style={styles.locationName}>{location.name}</Text>
-        <Text style={styles.locationCategory}>{location.category}</Text>
+        {/* <Text style={styles.locationCategory}>{location.category}</Text> */}
         <Text style={styles.locationAddress}>{location.location}</Text>
         {location.note && (
           <Text style={styles.locationDescription} numberOfLines={2}>
@@ -135,11 +135,11 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 2,
   },
-  locationCategory: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 2,
-  },
+  // locationCategory: {
+  //   fontSize: 14,
+  //   color: '#6B7280',
+  //   marginBottom: 2,
+  // },
   locationAddress: {
     fontSize: 14,
     color: '#4B5563',

@@ -14,7 +14,7 @@ interface LocationFilters {
   rating?: number;
   priceLevel?: number;
   isFavorite?: boolean;
-  category?: string;
+  // category?: string;
 }
 
 export function LocationSearch({

@@ -364,7 +364,7 @@ export function AllLocationsScreen() {
                   <View key={index} style={[styles.selectedTagItem, styles.locationTagItem]}>
                     <Text style={styles.selectedTagText}>{tag}</Text>
                     <TouchableOpacity onPress={() => handleRemoveLocationTag(tag)}>
-                      <X size={14} color="#6A62B7" />
+                      <X size={14} color="#000000" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -390,7 +390,7 @@ export function AllLocationsScreen() {
                   <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
                     <Text style={styles.selectedTagText}>{tag}</Text>
                     <TouchableOpacity onPress={() => handleRemoveTagFilterTag(tag)}>
-                      <X size={14} color="#6A62B7" />
+                      <X size={14} color="#000000" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -482,7 +482,7 @@ export function AllLocationsScreen() {
                         <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
                           <Text style={styles.selectedTagText}>{tag}</Text>
                           <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
-                            <X size={14} color="#6A62B7" />
+                            <X size={14} color="#000000" />
                           </TouchableOpacity>
                         </View>
                       ))}

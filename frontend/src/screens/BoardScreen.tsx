@@ -130,7 +130,6 @@ export function BoardScreen() {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isBoardSelectionVisible, setIsBoardSelectionVisible] = useState(false);
   const [isNewBoardModalVisible, setIsNewBoardModalVisible] = useState(false);
-  const [boards, setBoards] = useState<Board[]>([]);
 
   // State for search and filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -205,7 +204,7 @@ export function BoardScreen() {
           name,
           coverImage,
           board_location:board_location (
-            location:location (
+            location (
               id,
               name,
               description,
@@ -218,49 +217,46 @@ export function BoardScreen() {
         `)
         .eq('id', boardId)
         .single();
-
+  
       if (error) {
         console.error('❌ Error fetching board:', error);
         return;
       }
-
+  
       if (!boardId) return;
       console.log("📦 Raw board data from Supabase:", data);
-
-      const boardData = data as unknown as BoardData;
+  
+      const boardData = data as any;
+  
+      const locations = (boardData.board_location || [])
+        .map((entry: any) => entry.location) // 👈 no `.location[0]`, just `.location`
+        .filter((loc: any) => !!loc)
+        .map((loc: any) => ({
+          id: loc.id,
+          name: loc.name,
+          location: loc.address,
+          tags: loc.tag || [],
+          editableTags: loc.tag || [],
+          note: loc.note || null,
+        }));
+  
       setBoard({
         id: boardData.id,
         name: boardData.name,
-        locations: (boardData.board_location || [])
-          .map((entry: BoardLocation) => {
-            const loc = entry.location;
-            if (!loc) return null;
-
-            return {
-              id: loc.id,
-              name: loc.name,
-              location: loc.address,
-              category: 'default',
-              isFavorite: false,
-              tags: loc.tag || [],
-              editableTags: loc.tag || [],
-              note: loc.note || null,
-            };
-          })
-          .filter((loc): loc is Location => !!loc),
         coverImage: boardData.coverImage || '',
+        locations,
       });
     } catch (err) {
       console.error('Failed to fetch board data', err);
     }
-  };
+  };  
 
   useEffect(() => {
     fetchBoardData();
   }, [boardId]);
 
   // Filter locations based on search query and active filters
-  const filteredLocations = locations.filter(location => {
+  const filteredLocations = board.locations.filter(location => {
     const name = location.name ?? '';
     const locStr = location.location ?? '';
     const tags = location.editableTags ?? [];
@@ -280,11 +276,11 @@ export function BoardScreen() {
   // Filter locations for add modal
   const filteredAllLocations = allLocations.filter(location => 
     location.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    !board.locations?.some(boardLocation => boardLocation.id === location.id)
+    !board?.locations?.some(boardLocation => boardLocation.id === location.id)
   );
 
   const handleShare = async () => {
-    const locationsToShare = board.locations?.filter(location => 
+    const locationsToShare = board?.locations?.filter(location => 
       selectedLocationsToShare.includes(location.id)
     ) || [];
 
@@ -585,7 +581,20 @@ export function BoardScreen() {
           };
         }
         return loc;
-      });      
+      });
+      setBoard(prev => ({
+        ...prev,
+        locations: prev.locations.map(loc =>
+          loc.id === currentLocation.id
+            ? {
+                ...loc,
+                tags: updatedLocation.tag || [],
+                editableTags: updatedLocation.tag || [],
+                note: updatedLocation.note || null,
+              }
+            : loc
+        ),
+      }));    
       setAllLocations(updated);
       setIsEditLocationModalVisible(false);
     }
@@ -902,7 +911,7 @@ export function BoardScreen() {
             <View style={styles.shareSection}>
               <Text style={styles.shareSectionTitle}>Select locations to share:</Text>
               <ScrollView style={styles.modalList}>
-                {board.locations.map(location => (
+                {board?.locations?.map(location => (
                   <TouchableOpacity
                     key={location.id}
                     style={styles.locationItem}
@@ -960,7 +969,7 @@ export function BoardScreen() {
                   <View key={index} style={[styles.selectedTagItem, styles.locationTagItem]}>
                     <Text style={styles.selectedTagText}>{tag}</Text>
                     <TouchableOpacity onPress={() => handleRemoveLocationTag(tag)}>
-                      <X size={14} color="#6A62B7" />
+                      <X size={14} color="#000000" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -986,7 +995,7 @@ export function BoardScreen() {
                   <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
                     <Text style={styles.selectedTagText}>{tag}</Text>
                     <TouchableOpacity onPress={() => handleRemoveTagFilterTag(tag)}>
-                      <X size={14} color="#6A62B7" />
+                      <X size={14} color="#000000" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -1199,7 +1208,7 @@ export function BoardScreen() {
                         <View key={index} style={[styles.selectedTagItem, { backgroundColor: getTagColor(tag) }]}>
                           <Text style={styles.selectedTagText}>{tag}</Text>
                           <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
-                            <X size={14} color="#6A62B7" />
+                            <X size={14} color="#000000" />
                           </TouchableOpacity>
                         </View>
                       ))}
@@ -1613,7 +1622,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 14,
-    color: '#1F2937',
+    color: '#000000',
   },
   filterActions: {
     flexDirection: 'row',
@@ -1671,7 +1680,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   selectedTagText: {
-    color: '#6A62B7',
+    color: '#000000',
     fontSize: 14,
     marginRight: 5,
   },

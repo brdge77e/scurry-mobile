@@ -563,7 +563,7 @@ export function SelectedLocationsScreen() {
                         style={styles.removeTagButton}
                         onPress={() => handleRemoveTagToAdd(tag)}
                       >
-                        <X size={12} color="#6A62B7" />
+                        <X size={12} color="#000000" />
                       </TouchableOpacity>
                     </View>
                   ))}

@@ -67,13 +67,13 @@ export default function HomePage() {
           </TouchableOpacity>
         </View>
         <Text className="text-gray-500 text-sm mt-1">{item.description}</Text>
-        {item.category && (
+        {/* {item.category && (
           <View className="mt-2">
             <View className="bg-[#E5E1FF] px-2 py-1 rounded-full self-start">
               <Text className="text-[#6A62B7] text-xs">{item.category}</Text>
             </View>
           </View>
-        )}
+        )} */}
       </View>
     </TouchableOpacity>
   );
@@ -90,11 +90,11 @@ export default function HomePage() {
           <View className="bg-[#E5E1FF] px-2 py-1 rounded-full">
             <Text className="text-[#6A62B7] text-xs">{item.locationCount} locations</Text>
           </View>
-          {item.category && (
+          {/* {item.category && (
             <View className="bg-gray-100 px-2 py-1 rounded-full ml-2">
               <Text className="text-gray-600 text-xs">{item.category}</Text>
             </View>
-          )}
+          )} */}
         </View>
       </View>
     </TouchableOpacity>
