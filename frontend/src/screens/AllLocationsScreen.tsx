@@ -62,6 +62,7 @@ export function AllLocationsScreen() {
       } else {
         const formatted = data.map(loc => ({
           ...loc,
+          tags: loc.tag || [],
           editableTags: loc.tag || [],
           note: loc.note || null,
         }));
