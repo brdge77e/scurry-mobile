@@ -10,8 +10,9 @@ import os
 import openai
 import json
 
-api_key = "sk-"
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# Access the API key from environment variable
+api_key = os.getenv("OPENAI_API_KEY")
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
 app = FastAPI()
 whisper_model = whisper.load_model("base")
@@ -32,8 +33,7 @@ def download_tiktok(link, filename):
 
 def extract_audio(video_path, audio_path):
     try:
-        
-        subprocess.run([r"C:\Program Files\ffmpeg-master-latest-win64-gpl-shared\ffmpeg-master-latest-win64-gpl-shared\bin\ffmpeg.exe", '-i', video_path, '-q:a', '0', '-map', 'a', audio_path, '-y'], capture_output=True)
+        subprocess.run(['/usr/bin/ffmpeg', '-i', video_path, '-q:a', '0', '-map', 'a', audio_path, '-y'], capture_output=True)
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
