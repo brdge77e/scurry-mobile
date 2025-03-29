@@ -39,11 +39,11 @@ interface Board {
   coverImage?: string;
 }
 
-interface RecentBoard {
-  id: string;
-  name: string;
-  locationCount: number;
-}
+// interface RecentBoard {
+//   id: string;
+//   name: string;
+//   locationCount: number;
+// }
 
 // Add this constant for predefined tags if it doesn't exist already
 const PREDEFINED_TAGS = [
@@ -165,20 +165,20 @@ export function BoardScreen() {
   const [selectedLocationsToAdd, setSelectedLocationsToAdd] = useState<string[]>([]);
   const [selectedLocationsToShare, setSelectedLocationsToShare] = useState<string[]>([]);
 
-  // Add these state variables in the BoardScreen component
-  const [recentBoards, setRecentBoards] = useState<RecentBoard[]>([
-    {
-      id: '2',
-      name: 'Europe Summer 2024 🌞',
-      locationCount: 8,
-    },
-    {
-      id: '3',
-      name: 'Food Spots NYC 🗽',
-      locationCount: 15,
-    },
-    // Add more recent boards
-  ]);
+  // // Add these state variables in the BoardScreen component
+  // const [recentBoards, setRecentBoards] = useState<RecentBoard[]>([
+  //   {
+  //     id: '2',
+  //     name: 'Europe Summer 2024 🌞',
+  //     locationCount: 8,
+  //   },
+  //   {
+  //     id: '3',
+  //     name: 'Food Spots NYC 🗽',
+  //     locationCount: 15,
+  //   },
+  //   // Add more recent boards
+  // ]);
 
   // Add edit location state
   const [currentLocation, setCurrentLocation] = useState<LocationWithEditableContent | null>(null);

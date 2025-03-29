@@ -17,8 +17,8 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Set environment variable for OpenAI API key
-ENV OPENAI_API_KEY="OPENAI_API_KEY"
+# # Set environment variable for OpenAI API key
+# ENV OPENAI_API_KEY="OPENAI_API_KEY"
 
 # Expose port for FastAPI
 EXPOSE 8000

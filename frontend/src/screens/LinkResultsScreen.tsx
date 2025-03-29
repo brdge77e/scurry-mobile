@@ -37,7 +37,8 @@ export function LinkResultsScreen() {
   React.useEffect(() => {
     const extractLocations = async () => {
       try {
-        const response = await fetch('http://localhost:8000/extract-locations/', {
+        // ip
+        const response = await fetch('http://192.168.1.195:8000/extract-locations/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -88,6 +89,7 @@ export function LinkResultsScreen() {
     // Navigate to SelectedLocations screen with selected locations
     navigation.navigate('SelectedLocations', {
       sourceLink,
+      selectedLocations: locations.filter(loc => selectedLocations.has(loc.id)),
     });
   };
   

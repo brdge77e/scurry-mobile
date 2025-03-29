@@ -48,23 +48,24 @@ interface LocationWithEditableContent extends Location {
 interface Board {
   id: string;
   name: string;
-  emoji?: string;
+  // coverImage?: string;
   locationCount: number;
-  lastAccessed?: Date;
 }
 
 export function SelectedLocationsScreen() {
   const navigation = useNavigation<SelectedLocationsScreenNavigationProp>();
   const route = useRoute();
   const { showToast } = useToast();
-  const sourceLink = (route.params as { sourceLink: string })?.sourceLink;
+  const { sourceLink, selectedLocations } = route.params as {
+    sourceLink: string;
+    selectedLocations: { id: string; name: string }[];
+  };
   
   useEffect(() => {
     const fetchBoards = async () => {
       const { data, error } = await supabase
         .from('boards')
-        .select('*')
-        .order('lastAccessed', { ascending: false });
+        .select('*');
 
       if (error) console.error('Error fetching boards:', error);
       else setBoards(data);
@@ -134,33 +135,20 @@ export function SelectedLocationsScreen() {
   // };
   
   // State for locations
-  const [locations, setLocations] = useState<LocationWithEditableContent[]>([
-    {
-      id: '1',
-      name: 'Totoro Cafe',
-      location: 'Osaka, Japan',
-      imageSrc: 'https://example.com/totoro.jpg',
-      category: 'Cafe',
+  const [locations, setLocations] = useState<LocationWithEditableContent[]>(
+    selectedLocations.map((loc) => ({
+      ...loc,
+      location: '',
+      imageSrc: '', // Optionally fetch/placehold an image
+      category: '',
       isFavorite: false,
       tags: [],
       editableTags: [],
       note: null,
       sourceLink: sourceLink,
-    },
-    {
-      id: '2',
-      name: 'Times Square',
-      location: 'New York, NY',
-      imageSrc: 'https://example.com/times-square.jpg',
-      category: 'Landmark',
-      isFavorite: false,
-      tags: [],
-      editableTags: [],
-      note: null,
-      sourceLink: sourceLink,
-    },
-  ]);
-
+    }))
+  );
+  
   // Tag modal state
   const [isTagModalVisible, setIsTagModalVisible] = useState(false);
   const [currentLocationId, setCurrentLocationId] = useState<string | null>(null);
@@ -175,49 +163,25 @@ export function SelectedLocationsScreen() {
   
   // Board selection modal state
   const [isBoardModalVisible, setIsBoardModalVisible] = useState(false);
-  const [boards, setBoards] = useState<Board[]>([
-    {
-      id: '1',
-      name: 'Japan Grad Trip! 📍',
-      locationCount: 7,
-      lastAccessed: new Date(),
-    },
-    {
-      id: '2',
-      name: 'Hangouts~~',
-      locationCount: 7,
-      lastAccessed: new Date(),
-    },
-    {
-      id: '3',
-      name: 'Food Spots NYC 🗽',
-      locationCount: 15,
-      lastAccessed: new Date(Date.now() - 86400000 * 3), // 3 days ago
-    },
-    {
-      id: '4',
-      name: 'Europe Summer 2024 🌞',
-      locationCount: 8,
-      lastAccessed: new Date(Date.now() - 86400000 * 5), // 5 days ago
-    },
-  ]);
+  const [boards, setBoards] = useState<Board[]>([]);
 
   // Add state for board search functionality
   const [boardSearchQuery, setBoardSearchQuery] = useState('');
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [isNewBoardModalVisible, setIsNewBoardModalVisible] = useState(false);
 
-  // Get recent boards (last accessed within a week)
-  const recentBoards = boards
-    .filter(board => {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      return board.lastAccessed && board.lastAccessed > oneWeekAgo;
-    })
-    .sort((a, b) => {
-      return (b.lastAccessed?.getTime() || 0) - (a.lastAccessed?.getTime() || 0);
-    })
-    .slice(0, 3); // Get top 3 recent boards instead of 5
+
+  // // Get recent boards (last accessed within a week)
+  // const recentBoards = boards
+  //   .filter(board => {
+  //     const oneWeekAgo = new Date();
+  //     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  //     return board.lastAccessed && board.lastAccessed > oneWeekAgo;
+  //   })
+  //   .sort((a, b) => {
+  //     return (b.lastAccessed?.getTime() || 0) - (a.lastAccessed?.getTime() || 0);
+  //   })
+  //   .slice(0, 3); // Get top 3 recent boards instead of 5
 
   // Get all boards filtered by search query
   const filteredBoards = boards.filter(board => 
@@ -228,6 +192,36 @@ export function SelectedLocationsScreen() {
     navigation.navigate('LocationDetails', { locationId });
   };
 
+  const saveLocationsToSupabase = async () => {
+    const { error } = await supabase.from('location').insert(
+      locations.map(loc => ({
+        // id: loc.id,
+        name: loc.name,
+        // description: loc.description,
+        address: loc.location,
+        tag: loc.editableTags,
+        note: loc.note,
+        sourceLink: loc.sourceLink,
+        user_id: '952e86e8-9e5a-4d88-9a74-da0bc88ae728',
+      }))
+    );
+  
+    if (error) {
+      console.error('❌ Error saving to Supabase:', error);
+      showToast('Failed to save to Supabase', 'error');
+    } else {
+      showToast('Saved to Supabase!', 'success');
+    }
+    await fetchUpdatedLocations();
+  };
+
+  const fetchUpdatedLocations = async () => {
+    const { data, error } = await supabase
+      .from('locations')
+      .select('*');
+    if (!error) setLocations(data);
+  };
+  
   const openTagModal = (locationId: string) => {
     setCurrentLocationId(locationId);
     setIsTagModalVisible(true);
@@ -354,7 +348,8 @@ export function SelectedLocationsScreen() {
     setLocations(updatedLocations);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    await saveLocationsToSupabase();
     setIsBoardModalVisible(true);
   };
 
@@ -695,39 +690,6 @@ export function SelectedLocationsScreen() {
                 value={boardSearchQuery}
                 onChangeText={setBoardSearchQuery}
               />
-            </View>
-
-            {/* Recent boards section */}
-            <View style={styles.boardSectionContainer}>
-              <Text style={styles.boardSectionTitle}>Recently accessed</Text>
-              <View style={styles.boardListContainer}>
-                {recentBoards.length > 0 ? (
-                  <FlatList
-                    data={recentBoards}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={[
-                          styles.boardItem,
-                          selectedBoard === item.id && styles.selectedBoardItem,
-                        ]}
-                        onPress={() => setSelectedBoard(item.id)}
-                      >
-                        <View style={styles.boardItemContent}>
-                          <Text style={styles.boardName}>{item.name}</Text>
-                          <Text style={styles.boardCount}>{item.locationCount} locations</Text>
-                        </View>
-                        {selectedBoard === item.id && (
-                          <Check size={20} color="#6A62B7" />
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    style={styles.boardList}
-                  />
-                ) : (
-                  <Text style={styles.emptyText}>No recent boards</Text>
-                )}
-              </View>
             </View>
 
             {/* All boards section */}
