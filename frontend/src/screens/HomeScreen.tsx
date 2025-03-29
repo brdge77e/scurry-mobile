@@ -12,13 +12,34 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'M
 export const HomeScreen = () => {
   const [link, setLink] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidLink, setIsValidLink] = useState(false);
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { showToast } = useToast();
   const { isAuthenticated } = useAuth();
 
+  const validateLink = (url: string) => {
+    const patterns = {
+      tiktok: /^https?:\/\/((?:vm|vt|www)\.)?tiktok\.com\/.+/,
+      youtube: /^https?:\/\/(?:www\.)?youtube\.com\/shorts\/.+/,
+      instagram: /^https?:\/\/(?:www\.)?instagram\.com\/reels\/.+/,
+    };
+
+    return Object.values(patterns).some(pattern => pattern.test(url));
+  };
+
+  const handleLinkChange = (text: string) => {
+    setLink(text);
+    setIsValidLink(validateLink(text));
+  };
+
   const handleSubmit = async () => {
     if (!link.trim()) {
       showToast('Please enter a valid link', 'error');
+      return;
+    }
+
+    if (!isValidLink) {
+      showToast('Please enter a valid TikTok, YouTube Shorts, or Instagram Reels link', 'error');
       return;
     }
 
@@ -52,15 +73,15 @@ export const HomeScreen = () => {
           <View style={styles.form}>
             <View style={styles.inputContainer}>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  isValidLink && styles.inputValid
+                ]}
                 placeholder="Paste TikTok Link Here"
                 value={link}
-                onChangeText={setLink}
+                onChangeText={handleLinkChange}
                 placeholderTextColor="#A4A1BB"
               />
-              {!isLoading && link.trim() && (
-                <ArrowRight style={styles.arrowIcon} color="#6A62B7" size={20} />
-              )}
             </View>
 
             <TouchableOpacity
@@ -99,7 +120,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 24,
   },
   title: {
     fontSize: 48,
@@ -149,6 +170,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  inputValid: {
+    borderColor: '#6A62B7',
+    shadowColor: '#6A62B7',
+    shadowOpacity: 0.2,
   },
   arrowIcon: {
     position: 'absolute',
