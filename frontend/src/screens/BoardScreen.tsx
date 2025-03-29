@@ -16,6 +16,7 @@ import {
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
   TouchableWithoutFeedback,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ArrowLeft, Filter, Share as ShareIcon, Plus, X, Edit2, Search, Check, Trash2 } from 'lucide-react-native';
@@ -520,8 +521,9 @@ export function BoardScreen() {
   
     if (error) {
       console.error('Error creating board:', error);
+      showToast('Failed to create board');
     } else {
-      setBoards(prev => [newBoard as Board, ...prev]);
+      showToast('Board created successfully');
     }
     setIsNewBoardModalVisible(false);
   };
@@ -690,6 +692,48 @@ export function BoardScreen() {
     }
   };
 
+  const handleDeleteLocation = async (locationId: string) => {
+    Alert.alert(
+      "Remove Location",
+      "This will remove the location from this board only. Are you sure?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('board_location')
+                .delete()
+                .eq('board_id', boardId)
+                .eq('location_id', locationId);
+
+              if (error) {
+                console.error('Error removing location from board:', error);
+                showToast('Failed to remove location from board');
+                return;
+              }
+
+              // Update local state
+              setBoard(prev => ({
+                ...prev,
+                locations: prev.locations.filter(loc => loc.id !== locationId)
+              }));
+              showToast('Location removed from board');
+            } catch (error) {
+              console.error('Error in remove operation:', error);
+              showToast('Failed to remove location');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -756,6 +800,7 @@ export function BoardScreen() {
             <LocationCard 
               location={item}
               onEdit={() => handleOpenEditModal(item)}
+              onDelete={() => handleDeleteLocation(item.id)}
               onPress={() => handleLocationPress(item.id)}
             />
           )}

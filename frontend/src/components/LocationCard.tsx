@@ -8,10 +8,12 @@ import {
 } from 'react-native';
 import { Location } from '../types/index';
 import { PlaceholderImage } from './PlaceholderImage';
+import { Trash2 } from 'lucide-react-native';
 
 interface LocationCardProps {
   location: Location;
   onEdit?: () => void;
+  onDelete?: () => void;
   onPress?: () => void;
 }
 
@@ -33,7 +35,7 @@ function getTagColor(tag: string): string {
   return colors[tag as keyof typeof colors] || '#E5E1FF';
 }
 
-export function LocationCard({ location, onEdit, onPress }: LocationCardProps) {
+export function LocationCard({ location, onEdit, onDelete, onPress }: LocationCardProps) {
   return (
     <TouchableOpacity
       style={styles.locationCard}
@@ -76,15 +78,26 @@ export function LocationCard({ location, onEdit, onPress }: LocationCardProps) {
           </View>
         )}
       </View>
-      {onEdit && (
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={onEdit}
-          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-        >
-          <Text style={styles.editButtonText}>Edit</Text>
-        </TouchableOpacity>
-      )}
+      <View style={styles.actionButtons}>
+        {onEdit && (
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={onEdit}
+            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+          >
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+        )}
+        {onDelete && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={onDelete}
+            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+          >
+            <Trash2 size={16} color="#EF4444" />
+          </TouchableOpacity>
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -184,5 +197,15 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 12,
     color: '#6B7280',
+  },
+  actionButtons: {
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    gap: 8,
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 4,
+    backgroundColor: '#FEE2E2',
   },
 }); 

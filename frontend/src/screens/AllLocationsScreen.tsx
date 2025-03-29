@@ -13,6 +13,7 @@ import {
   Platform,
   Image,
   TouchableWithoutFeedback,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Filter, Search, Plus, X, Edit2, ArrowLeft } from 'lucide-react-native';
@@ -23,6 +24,7 @@ import { PlaceholderImage } from '../components/PlaceholderImage';
 import { LocationCard } from '../components/LocationCard';
 import { useEffect } from 'react';
 import supabase from '../utils/supabaseClient';
+import { useToast } from '../hooks/useToast';
 
 type AllLocationsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AllLocations'>;
 
@@ -47,6 +49,7 @@ interface LocationWithEditableContent extends Location {
 
 export function AllLocationsScreen() {
   const navigation = useNavigation<AllLocationsScreenNavigationProp>();
+  const { showToast } = useToast();
   
   const [locations, setLocations] = useState<LocationWithEditableContent[]>([]);
   const [loading, setLoading] = useState(true); // optional: for loading state
@@ -266,10 +269,62 @@ export function AllLocationsScreen() {
     }
   };
 
+  const handleDeleteLocation = async (locationId: string) => {
+    Alert.alert(
+      "Delete Location",
+      "This will remove the location from all boards. Are you sure you want to delete this location?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // First delete from board_location table
+              const { error: boardLocationError } = await supabase
+                .from('board_location')
+                .delete()
+                .eq('location_id', locationId);
+
+              if (boardLocationError) {
+                console.error('Error deleting from board_location:', boardLocationError);
+                showToast('Failed to delete location from boards');
+                return;
+              }
+
+              // Then delete from location table
+              const { error: locationError } = await supabase
+                .from('location')
+                .delete()
+                .eq('id', locationId);
+
+              if (locationError) {
+                console.error('Error deleting location:', locationError);
+                showToast('Failed to delete location');
+                return;
+              }
+
+              // Update local state
+              setLocations(prev => prev.filter(loc => loc.id !== locationId));
+              showToast('Location deleted successfully');
+            } catch (error) {
+              console.error('Error in delete operation:', error);
+              showToast('Failed to delete location');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderLocationItem = ({ item }: { item: LocationWithEditableContent }) => (
     <LocationCard
       location={item}
       onEdit={() => handleOpenEditModal(item)}
+      onDelete={() => handleDeleteLocation(item.id)}
       onPress={() => navigation.navigate('LocationDetails', { locationId: item.id })}
     />
   );

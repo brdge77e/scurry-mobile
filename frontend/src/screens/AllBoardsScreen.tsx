@@ -9,13 +9,15 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Plus, Search } from 'lucide-react-native';
+import { Plus, Search, Trash2 } from 'lucide-react-native';
 import { RootStackParamList } from '../types/navigation';
 import { BoardEditModal } from '../components/BoardEditModal';
 import supabase from '../utils/supabaseClient';
+import { useToast } from '../hooks/useToast';
 
 type AllBoardsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AllBoards'>;
 
@@ -28,6 +30,7 @@ interface Board {
 
 export function AllBoardsScreen() {
   const navigation = useNavigation<AllBoardsScreenNavigationProp>();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [boards, setBoards] = useState<Board[]>([]);
@@ -89,6 +92,57 @@ export function AllBoardsScreen() {
     setIsCreateModalVisible(false);
   };
 
+  const handleDeleteBoard = async (boardId: string) => {
+    Alert.alert(
+      "Delete Board",
+      "This will remove the board from your list. The locations in this board will still exist in your All Locations list and other boards. Are you sure?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // First delete all board_location entries for this board
+              const { error: boardLocationError } = await supabase
+                .from('board_location')
+                .delete()
+                .eq('board_id', boardId);
+
+              if (boardLocationError) {
+                console.error('Error deleting board locations:', boardLocationError);
+                showToast('Failed to delete board locations');
+                return;
+              }
+
+              // Then delete the board itself
+              const { error: boardError } = await supabase
+                .from('boards')
+                .delete()
+                .eq('id', boardId);
+
+              if (boardError) {
+                console.error('Error deleting board:', boardError);
+                showToast('Failed to delete board');
+                return;
+              }
+
+              // Update local state
+              setBoards(prev => prev.filter(board => board.id !== boardId));
+              showToast('Board deleted successfully');
+            } catch (error) {
+              console.error('Error in delete operation:', error);
+              showToast('Failed to delete board');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const filteredBoards = boards.filter(board =>
     board.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -98,11 +152,20 @@ export function AllBoardsScreen() {
       style={styles.boardItem}
       onPress={() => navigation.navigate('Board', { boardId: item.id })}
     >
-      <View>
-        <Text style={styles.boardName}>{item.name}</Text>
-        <Text style={styles.locationCount}>
-          {item.locationCount} {item.locationCount === 1 ? 'location' : 'locations'}
-        </Text>
+      <View style={styles.boardContent}>
+        <View>
+          <Text style={styles.boardName}>{item.name}</Text>
+          <Text style={styles.locationCount}>
+            {item.locationCount} {item.locationCount === 1 ? 'location' : 'locations'}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDeleteBoard(item.id)}
+          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+        >
+          <Trash2 size={20} color="#EF4444" />
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -204,6 +267,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
   },
+  boardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   boardName: {
     fontSize: 18,
     fontWeight: '600',
@@ -213,5 +281,10 @@ const styles = StyleSheet.create({
   locationCount: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
   },
 });
