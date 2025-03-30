@@ -39,38 +39,40 @@ export function LinkResultsScreen() {
   const sourceLink = (route.params as { sourceLink: string })?.sourceLink;
 
   React.useEffect(() => {
-    const extractLocations = async () => {
-      try {
-        // ip
-        const response = await fetch('http://192.168.1.195:8000/extract-locations/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ url: sourceLink }),
-        });
-  
-        const data = await response.json();
-        console.log('✅ Extracted locations:', data.locations);
-  
-        // You can then update state like:
-        setLocations(data.locations.map((loc: any, i: any) => ({
-          id: `${i}`,
-          name: loc,
-          address: '',
-          distance: '',
-          rating: 4.5,
-        })));
-      } catch (error) {
-        showToast('Failed to extract locations', 'error');
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-  
-    extractLocations();
-  }, []);  
+  const extractLocations = async () => {
+    try {
+      const response = await fetch('http://192.168.1.195:8000/extract-locations/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: sourceLink }),
+      });
+
+      const data = await response.json();
+      console.log('✅ Extracted locations:', data.locations);
+
+      const parsedLocations: Location[] = Object.entries(data.locations).map(
+        ([name, [address, country]], index) => ({
+          id: `${index}`,
+          name,
+          address,
+          country,
+          user_id: '952e86e8-9e5a-4d88-9a74-da0bc88ae728',
+        })
+      );
+
+      setLocations(parsedLocations);
+    } catch (error) {
+      showToast('Failed to extract locations', 'error');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  extractLocations();
+}, []);  
 
   const handleLocationSelect = (id: string) => {
     setSelectedLocations(prev => {
