@@ -8,7 +8,7 @@ export interface User {
   updatedAt: string;
 }
 
-export interface Location {
+export  {
   id: string;
   name: string;
   location: string;

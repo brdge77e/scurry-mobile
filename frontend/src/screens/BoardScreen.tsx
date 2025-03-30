@@ -60,7 +60,7 @@ const PREDEFINED_TAGS = [
 ];
 
 // Update the interface to match the Location type
-interface LocationWithEditableContent extends Omit<Location, 'note'> {
+interface LocationWithEditableContent extends Location {
   editableTags: string[];
   note: string | null;
 }
@@ -165,20 +165,20 @@ export function BoardScreen() {
   const [selectedLocationsToAdd, setSelectedLocationsToAdd] = useState<string[]>([]);
   const [selectedLocationsToShare, setSelectedLocationsToShare] = useState<string[]>([]);
 
-  // // Add these state variables in the BoardScreen component
-  // const [recentBoards, setRecentBoards] = useState<RecentBoard[]>([
-  //   {
-  //     id: '2',
-  //     name: 'Europe Summer 2024 🌞',
-  //     locationCount: 8,
-  //   },
-  //   {
-  //     id: '3',
-  //     name: 'Food Spots NYC 🗽',
-  //     locationCount: 15,
-  //   },
-  //   // Add more recent boards
-  // ]);
+  // Add these state variables in the BoardScreen component
+  const [recentBoards, setRecentBoards] = useState<RecentBoard[]>([
+    {
+      id: '2',
+      name: 'Europe Summer 2024 🌞',
+      locationCount: 8,
+    },
+    {
+      id: '3',
+      name: 'Food Spots NYC 🗽',
+      locationCount: 15,
+    },
+    // Add more recent boards
+  ]);
 
   // Add edit location state
   const [currentLocation, setCurrentLocation] = useState<LocationWithEditableContent | null>(null);

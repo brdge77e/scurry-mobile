@@ -18,11 +18,15 @@ import { RootStackParamList } from '../types/navigation';
 type LinkResultsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LinkResults'>;
 
 interface Location {
-  id: string;
+  id?: number;
   name: string;
+  desc?: string;
   address: string;
-  distance: string;
-  rating: number;
+  country?: string;
+  tag?: string[];
+  note?: string;
+  sourceLink?: string;
+  user_id: '952e86e8-9e5a-4d88-9a74-da0bc88ae728';
 }
 
 export function LinkResultsScreen() {

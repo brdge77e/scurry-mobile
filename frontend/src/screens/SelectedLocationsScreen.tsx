@@ -138,7 +138,7 @@ export function SelectedLocationsScreen() {
   const [locations, setLocations] = useState<LocationWithEditableContent[]>(
     selectedLocations.map((loc) => ({
       ...loc,
-      location: '',
+      address: '',
       imageSrc: '', // Optionally fetch/placehold an image
       category: '',
       isFavorite: false,
@@ -171,17 +171,17 @@ export function SelectedLocationsScreen() {
   const [isNewBoardModalVisible, setIsNewBoardModalVisible] = useState(false);
 
 
-  // // Get recent boards (last accessed within a week)
-  // const recentBoards = boards
-  //   .filter(board => {
-  //     const oneWeekAgo = new Date();
-  //     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  //     return board.lastAccessed && board.lastAccessed > oneWeekAgo;
-  //   })
-  //   .sort((a, b) => {
-  //     return (b.lastAccessed?.getTime() || 0) - (a.lastAccessed?.getTime() || 0);
-  //   })
-  //   .slice(0, 3); // Get top 3 recent boards instead of 5
+  // Get recent boards (last accessed within a week)
+  const recentBoards = boards
+    .filter(board => {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      return board.lastAccessed && board.lastAccessed > oneWeekAgo;
+    })
+    .sort((a, b) => {
+      return (b.lastAccessed?.getTime() || 0) - (a.lastAccessed?.getTime() || 0);
+    })
+    .slice(0, 3); // Get top 3 recent boards instead of 5
 
   // Get all boards filtered by search query
   const filteredBoards = boards.filter(board => 
@@ -198,7 +198,8 @@ export function SelectedLocationsScreen() {
         // id: loc.id,
         name: loc.name,
         // description: loc.description,
-        address: loc.location,
+        address: loc.address,
+        country: loc.country,
         tag: loc.editableTags,
         note: loc.note,
         sourceLink: loc.sourceLink,
@@ -217,7 +218,7 @@ export function SelectedLocationsScreen() {
 
   const fetchUpdatedLocations = async () => {
     const { data, error } = await supabase
-      .from('locations')
+      .from('location')
       .select('*');
     if (!error) setLocations(data);
   };
@@ -359,6 +360,10 @@ export function SelectedLocationsScreen() {
     showToast('Locations added to board successfully!');
     setIsBoardModalVisible(false);
     navigation.navigate('Board', { boardId });
+    locations.map(loc => ({
+      board_id: boardId,
+      location_id: loc.id, // might need to fetch recently inserted IDs
+    }))
   };
 
   const handleNoThanks = () => {
