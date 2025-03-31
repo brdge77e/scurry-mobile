@@ -56,9 +56,9 @@ export function SelectedLocationsScreen() {
   const navigation = useNavigation<SelectedLocationsScreenNavigationProp>();
   const route = useRoute();
   const { showToast } = useToast();
-  const { sourceLink, selectedLocations } = route.params as {
+  const { sourceLink, selectedLocations = [] } = route.params as {
     sourceLink: string;
-    selectedLocations: { id: string; name: string }[];
+    selectedLocations?: { id: string; name: string }[];
   };
   
   useEffect(() => {
@@ -220,8 +220,19 @@ export function SelectedLocationsScreen() {
     const { data, error } = await supabase
       .from('location')
       .select('*');
-    if (!error) setLocations(data);
+      
+    if (!error && data) {
+      const normalized = data.map((loc: any) => ({
+        ...loc,
+        editableTags: loc.tag || [],       // Supabase returns this as 'tag'
+        note: loc.note || null,
+      }));
+      setLocations(normalized);
+    } else {
+      console.error('Error fetching updated locations:', error);
+    }
   };
+  
   
   const openTagModal = (locationId: string) => {
     setCurrentLocationId(locationId);
