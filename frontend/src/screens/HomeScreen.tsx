@@ -21,9 +21,8 @@ export const HomeScreen = () => {
     const patterns = {
       tiktok: /^https?:\/\/((?:vm|vt|www)\.)?tiktok\.com\/.+/,
       youtube: /^https?:\/\/(?:www\.)?youtube\.com\/shorts\/.+/,
-      instagram: /^https?:\/\/(?:www\.)?instagram\.com\/reels\/.+/,
+      instagram: /^https?:\/\/(?:www\.)?instagram\.com\/reel[s]?\/[a-zA-Z0-9-_]+/,
     };
-
     return Object.values(patterns).some(pattern => pattern.test(url));
   };
 

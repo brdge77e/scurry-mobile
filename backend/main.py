@@ -83,10 +83,19 @@ def extract_text_from_frames(video_path, frame_skip=5):
 
 def extract_locations(text1, text2):
     prompt = """You will be given 2 set of text. The first set is the transcript of the audio. The second set is the text extracted from the video frames. The 2 sets of text are from the same video. As this is a travel guide, sometimes the transcribed text could be empty if it is fully visual.
-                 Text from video frames can be harder to understand. Please understand the text and identify the locations mentioned in the text. Double check whether the location exist and it should be likely a place recommended to go. Text spelling could be wrong so make sense out of it as best as you can. If you are unsure, you can skip the question.
-                 You are to return in the following format and NOTHING ELSE:
+                 Text from video frames can be harder to understand. Please understand the text and identify the locations mentioned in the text. Double check whether the location exist. Get the identified location for the Country, City and Address. Text spelling could be wrong so make sense out of it as best as you can. If you are unsure, you can skip the it.
+                 You are to return me ONLY ONE DICTIONARY of format:
                  
-                     "{"locations": ["location1", "location2"]}"
+                     "{
+                        "locations": 
+                            {
+                                "location1": ["address1", "City1, Country1"],
+                                "location2": ["address2", "City2, Country2"]
+                            }
+                    }"
+                
+                    DO NOT RETURN ME ANYTHING ELSE OTHER THAN THIS DICTIONARY. YOUR OUTPUT ISMEANT TO BE PARSED BY ANOTHER COMPUTER PROGRAM.
+                    REPLACE THE LOCATION1, LOCATION2, ADDRESS1, ADDRESS2, CITY1, CITY2, COUNTRY1, COUNTRY2, etc WITH THE ACTUAL LOCATIONS YOU IDENTIFIED.
                  """
     
     try:
@@ -120,7 +129,7 @@ def extract_locations_from_tiktok(req: TikTokLink):
         transcript = transcribe_audio(audio_file)
         print("DONE TRANSCRIPT")
         duration = get_video_length(video_file)
-        skip_frames = max(int(duration / 10) * 5, 5)
+        skip_frames = max(int(duration / 10) * 5, 25)
         print(skip_frames)
         print("DONE VIDEO LENGTH")
         visual_text = extract_text_from_frames(video_file, skip_frames)
